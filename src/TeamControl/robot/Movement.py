@@ -32,7 +32,7 @@ class RobotMovement():
         return vx, vy, w
     
     @staticmethod
-    def turn_to_target(target:tuple[float,float] =None, epsilon: float=0.15, speed: float = 5, robotOmega = None):
+    def turn_to_target(target:tuple[float,float] =None, epsilon: float=0.15, speed: float = 0.1, robotOmega = None):
         '''
             This function returns an agular velocity. The goal is to turn the robot
             in such a way that it is facing the ball with its kicker side.
@@ -43,22 +43,21 @@ class RobotMovement():
                         consider it correct -> avoids jitter)
         '''
         if target is None :
-            return None
+            omega = -speed*np.sign(robotOmega)
+            return omega
         orientation_to_ball = np.arctan2(target[0], target[1])-np.pi/2
 
         if abs(orientation_to_ball) < epsilon:
             # to avoid jitter
             omega = 0
-        elif abs(orientation_to_ball) > epsilon and abs(orientation_to_ball) < 2 * epsilon:
-            omega = -speed*np.sign(orientation_to_ball) * 0.05
+        elif abs(orientation_to_ball) > epsilon and abs(orientation_to_ball) < 4*epsilon:
+            omega = -speed*np.sign(orientation_to_ball) * 0.5
         else:
-            omega = speed*np.sign(orientation_to_ball)* 0.5
-        
-        print(orientation_to_ball)
+            omega = -speed*np.sign(orientation_to_ball)
         return omega 
     
     @staticmethod
-    def go_To_Target(target_pos: tuple[float,float], speed: int=2.3, stop_threshold:float=150):
+    def go_To_Target(target_pos: tuple[float,float], speed: int=1, stop_threshold:float=150):
         """go To Target Position (in respect to Robot)
         if the distance is further away from stop_threshold,
         it will go to target position with calculated speed.

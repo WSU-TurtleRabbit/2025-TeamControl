@@ -49,7 +49,7 @@ class Sender(BaseSocket):
         # print(self.destination)
         self.sock.sendto(encoded_msg,addr)
         
-        # print(f"sending {msg} to {addr}")
+        print(f"sending {msg} to {addr}")
 
             
     

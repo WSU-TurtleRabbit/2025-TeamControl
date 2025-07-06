@@ -10,11 +10,11 @@ def transformation_matrix(p):
         output:
             transformation matrix (rotation and translation)
     '''
-    # is_grsim = True
-    # if is_grsim:
-    #     angle = p[2]
-    # else:
-    angle = p[2]
+    is_grsim = True
+    if is_grsim:
+        angle = p[2]
+    else:
+        angle = p[2] + np.pi
     c = np.cos(angle)
     s = np.sin(angle)
 

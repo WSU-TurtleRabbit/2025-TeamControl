@@ -7,7 +7,6 @@ from TeamControl.network.sender import Sender,Broadcaster,Multicaster
 
 from TeamControl.network.visionSockets import Vision,VisionTracker
 
-from TeamControl.network.robotCommand import RobotCommand
 
 if __name__ == "__main__" : 
     from TeamControl.network import sender

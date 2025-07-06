@@ -1,25 +1,22 @@
 from TeamControl.SSL.grSim import grSimRobotCommmand
 import pygame
 
-from TeamControl.network import Sender,grSimSender
+from TeamControl.network import Sender
+from TeamControl.SSL.grSim.grSimSockets import grSimSender
+from TeamControl.SSL.grSim.commands import GrSimRobotCommands
+
 from TeamControl.network.robotCommand import RobotCommand
 
 class Remote_robot():
-    def __init__(self, use_sim:bool=False, robot_id=2, isYellow=True):
-        self.robot_id = robot_id
-        self.us_yellow = isYellow
-        if use_sim is True:
-            device_ip = "127.0.0.1"
-            DEFAULT = 20010
-            self.sender = grSimSender(isYellow=isYellow,ip=device_ip,port=DEFAULT)
-        elif use_sim is False:
-            robot_ip = "192.168.70.171"
-            self.sender = Sender(ip=robot_ip,port=50514)
-        
+    def __init__(self):
+        print("Welcome, use ESC on tiny window to quit the programe")
+        self.robot_ip = str(input("Enter Robot IP"))
+        self.robot_id = int(input("Enter the ID of Robot you want to control: "))
+        self.sender = Sender(ip=self.robot_ip,port=50514)
+        self.us_yellow = True 
 
 
     def run_remote_control(self):
-        speed = 1
         speed = 1
         vx,vy,vw,k,d = 0,0,0,0,0
         # dribbler_on = False
@@ -27,7 +24,6 @@ class Remote_robot():
         screen = pygame.display.set_mode((400, 300))
         running = True
         while running:
-            vx,vy,vw,k,d = 0,0,0,0,0
             pygame.event.pump()  # Process internal events
 
             keys = pygame.key.get_pressed()  # Get key states
@@ -58,8 +54,8 @@ class Remote_robot():
             
             
             if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
-                vx = vx*10
-                vy = vy*10
+                vx = vx*100
+                vy = vy*100
                 vw = vw*5
                 
             if keys[pygame.K_f]:
@@ -71,11 +67,8 @@ class Remote_robot():
             
                                             
             Command = RobotCommand(robot_id=self.robot_id, vx=vx,vy=vy,w=vw,kick=k,dribble=d)
-            if Command.vx == 0 and Command.vy == 0 and Command.w ==0:
-                continue # skips the command send
-            
+            vx,vy,vw,k,d = 0,0,0,0,0
             self.sender.send(Command)
-
 
 if __name__ == "__main__":
     rc = Remote_robot()

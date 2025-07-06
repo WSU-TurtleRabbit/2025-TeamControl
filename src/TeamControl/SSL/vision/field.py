@@ -23,13 +23,13 @@ class Vector2f ():
     def __init__(self,x: float,y: float):
         self.x: float= x
         self.y: float= y 
-    
+        
     @classmethod
     def from_proto (cls,vector):
         return cls(x=float(vector.x), y=float(vector.y))
     
-    def __repr__(self):
-        return f"[{self.x=} , {self.y=}]"
+    def __str__(self):
+        return f"{self.x=} : {self.y=}"
 
 class FieldLines():
     def __init__(self,name : str, p1 : Vector2f, p2 : Vector2f, 
@@ -45,23 +45,17 @@ class FieldLines():
         ## The type of this shape (Optional)
         self.type : Optional[FieldShapeType] = type
     
-    def __repr__(self):
-        return f"\n{self.name=} \t {self.p1=} \t {self.p2=} \t {self.thickness=} \t {self.type=}"
     def __str__(self):
         return f"{self.type=} : {self.name=}"
     
     @classmethod
-    def from_proto(cls,fl) -> object | None:
-        if fl is not None:
-            return cls(name=str(fl.name),
-            p1=Vector2f.from_proto(fl.p1) ,
-            p2=Vector2f.from_proto(fl.p2),
-            thickness=float(fl.thickness),
-            type=getattr(fl,"type",None)
-            )
-        else :
-            return None
-            
+    def from_proto(cls,fa):
+        cls(name=str(fa.name),
+        p1=Vector2f(fa.p1) ,
+        p2=Vector2f(fa.p2),
+        thickness=float(fa.thickness),
+        type=getattr(fa,"type",None)
+        )
 
 
 class FieldArcs():
@@ -82,22 +76,19 @@ class FieldArcs():
         ## The type of this shape (Optional)
         self.type : Optional[FieldShapeType] = type 
     
-    def __repr__(self):
-        return f"{self.name=} \t {self.center=} \t {self.radius=} \t {self.a1=} \t {self.a2=} \t {self.thickness=}\t {self.type=}"
-        
+    def __str__(self):
+        return f"{self.type=} : {self.name=}"
+    
     @classmethod
-    def from_proto(cls,fa) -> object | None :
-        if fa is not None:
-            return cls(name = str(fa.name),
-            center = Vector2f.from_proto(fa.center),
-            radius = float(fa.radius),
-            a1 = float(fa.a1) ,
-            a2 = float(fa.a2),
-            thickness = float(fa.thickness),
-            type=getattr(fa,"type",None)
-            )
-        else : 
-            return None
+    def from_proto(cls,fa):
+        cls(name = str(fa.name),
+        center = Vector2f(fa.center),
+        radius = float(fa.radius),
+        a1 = float(fa.a1) ,
+        a2 = float(fa.a2),
+        thickness = float(fa.thickness),
+        type=getattr(fa,"type",None)
+        )
 class FieldSize():
     def __init__(self, field_length:int, field_width:int, goal_width:int, goal_depth:int, boundary_width:int,
                  field_lines:FieldLines, field_arcs:FieldArcs,
@@ -111,27 +102,20 @@ class FieldSize():
         self.field_arcs : list[FieldArcs]= field_arcs
         self.penalty_area_depth : Optional[int]= penalty_area_depth #(Optional)
         self.penalty_area_width : Optional[int]= penalty_area_width #(Optional)
-    def __repr__ (self):
-        return (f"{self.field_length=} \t {self.field_width=} \t {self.goal_width=} \t {self.goal_depth=} \t {self.boundary_width=} \t {self.penalty_area_width=} \t {self.penalty_area_depth=} \n"
-                + f"{self.field_lines=} \n"
-                + f"{self.field_arcs=} \n"
-                
-        )
+    
     @classmethod
-    def from_proto(cls,fs) -> object | None:
-        if fs is not None:
-            return cls(field_length=int(fs.field_length),
-                field_width=int(fs.field_width),
-                goal_width=int(fs.goal_width),
-                goal_depth=int(fs.goal_depth),
-                boundary_width=int(fs.boundary_width),
-                field_lines=[FieldLines.from_proto(line) for line in fs.field_lines],
-                field_arcs=[FieldArcs.from_proto(arc) for arc in fs.field_arcs],
-                penalty_area_depth=getattr(fs, "penalty_area_depth", None),
-                penalty_area_width=getattr(fs, "penalty_area_width", None)
-            )
-        else: 
-            return None
+    def from_proto(cls,fs):
+        return cls(field_length=int(fs.field_length),
+            field_width=int(fs.field_width),
+            goal_width=int(fs.goal_width),
+            goal_depth=int(fs.goal_depth),
+            boundary_width=int(fs.boundary_width),
+            field_lines=[FieldLines(line) for line in fs.field_lines],
+            field_arcs=[FieldArcs(arc) for arc in fs.field_arcs],
+            penalty_area_depth=getattr(fs, "penalty_area_depth", None),
+            penalty_area_width=getattr(fs, "penalty_area_width", None)
+        )
+
 class CameraCalibration():
     def __init__(self, camera_id : int, focal_length : float, principal_point_x : float, principal_point_y : float,
         distortion : float, q0 : float, q1 : float, q2 : float, q3 : float, tx : float, ty : float, tz : float, 
@@ -155,95 +139,66 @@ class CameraCalibration():
         self.pixel_image_width : Optional[int]= pixel_image_width 
         self.pixel_image_height : Optional[int]= pixel_image_height 
         
-    def __repr__(self):
-        return (f"\n{self.principal_point_x=}, {self.principal_point_y=}, {self.distortion=}\n"
-        + f"{self.q0=}, {self.q1=}, {self.q2=},{self.q3=}\n"
-        + f"{self.tx=}, {self.ty=}, {self.tz=}\n"
-        + f"{self.derived_camera_world_tx=}, {self.derived_camera_world_ty=}, {self.derived_camera_world_tz=}\n"
-        + f"{self.pixel_image_width=}, {self.pixel_image_height=}\n"
+    @classmethod
+    def from_proto(cls, cc):
+        return cls(
+            camera_id=int(cc.camera_id),
+            focal_length=float(cc.focal_length),
+            principal_point_x=float(cc.principal_point_x),
+            principal_point_y=float(cc.principal_point_y),
+            distortion=float(cc.distortion),
+            q0=float(cc.q0),
+            q1=float(cc.q1),
+            q2=float(cc.q2),
+            q3=float(cc.q3),
+            tx=float(cc.tx),
+            ty=float(cc.ty),
+            tz=float(cc.tz),
+            derived_camera_world_tx=getattr(cc,"derived_camera_world_tx", None),
+            derived_camera_world_ty=getattr(cc,"derived_camera_world_ty", None),
+            derived_camera_world_tz=getattr(cc,"derived_camera_world_tz", None),
+            pixel_image_width=getattr(cc, "pixel_image_width", None),
+            pixel_image_height=getattr(cc, "pixel_image_height", None)
         )
         
-    
-    @classmethod
-    def from_proto(cls, cc) -> object | None:
-        if cc is not None:
-            return cls(
-                camera_id=int(cc.camera_id),
-                focal_length=float(cc.focal_length),
-                principal_point_x=float(cc.principal_point_x),
-                principal_point_y=float(cc.principal_point_y),
-                distortion=float(cc.distortion),
-                q0=float(cc.q0),
-                q1=float(cc.q1),
-                q2=float(cc.q2),
-                q3=float(cc.q3),
-                tx=float(cc.tx),
-                ty=float(cc.ty),
-                tz=float(cc.tz),
-                derived_camera_world_tx=getattr(cc,"derived_camera_world_tx", None),
-                derived_camera_world_ty=getattr(cc,"derived_camera_world_ty", None),
-                derived_camera_world_tz=getattr(cc,"derived_camera_world_tz", None),
-                pixel_image_width=getattr(cc, "pixel_image_width", None),
-                pixel_image_height=getattr(cc, "pixel_image_height", None)
-            )
-        else : 
-            return None
 class BallModelStraightTwoPhase():
     def __init__(self, acc_slide : float, acc_roll : float, k_switch : float):
         self.acc_slide : float=acc_slide ## Ball sliding acceleration [m/s^2] (should be negative)
         self.acc_roll : float=acc_roll  ## Ball rolling acceleration [m/s^2] (should be negative)
         self.k_switch : float=k_switch  ## Fraction of the initial velocity where the ball starts to roll
     
-    def __repr__(self):
-        return f"\t {self.acc_slide=} \t {self.acc_roll=} \t {self.k_switch=}"
-    
     @classmethod
-    def from_proto(cls,s2p) -> object | None:
-        if s2p is not None:
-            return cls(
-                acc_slide=float(s2p.acc_slide),
-                acc_roll=float(s2p.acc_roll),
-                k_switch=float(s2p.k_switch)
-            )
-        else:
-            return None
+    def from_proto(cls,s2p):
+        return cls(
+            acc_slide=float(s2p.acc_slide),
+            acc_roll=float(s2p.acc_roll),
+            k_switch=float(s2p.k_switch)
+        )
 
 class BallModelChipFixedLoss():
     def __init__(self,damping_xy_first_hop : float, damping_xy_other_hops : float, damping_z : float):
         self.damping_xy_first_hop : float = damping_xy_first_hop 
         self.damping_xy_other_hops : float = damping_xy_other_hops  ## Chip kick velocity damping factor in XY direction for all following hops
         self.damping_z : float = damping_z ## Chip kick velocity damping factor in Z direction for all hops
-    def __repr__(self):
-        return f"\t {self.damping_xy_first_hop=} \t {self.damping_xy_other_hops=} \t {self.damping_z=}\n"
-    
+  
     @classmethod
-    def from_proto(cls,cfl) -> object | None:
-        if cfl is not None:
-            return cls(
+    def from_proto(cls,cfl):
+        return cls(
             damping_xy_first_hop=float(cfl.damping_xy_first_hop),
             damping_xy_other_hops=float(cfl.damping_xy_other_hops),
             damping_z=float(cfl.damping_z)
-            )
-        else:
-            return None
-        
+        )
 class GeometryModels():
-    def __init__(self,straight_two_phase:BallModelStraightTwoPhase=None, chip_fixed_loss:BallModelChipFixedLoss=None):
-        self.straight_two_phase:BallModelStraightTwoPhase=straight_two_phase
-        self.chip_fixed_loss:BallModelChipFixedLoss=chip_fixed_loss
-    
-    def __repr__(self):
-        return f"{self.straight_two_phase=} \n {self.chip_fixed_loss=}"
+    def __init__(self,straight_to_phase:float=None, chip_fixed_loss:float=None):
+        self.straight_to_phase:float=straight_to_phase
+        self.chip_fixed_loss:float=chip_fixed_loss
     
     @classmethod
-    def from_proto(cls,gm) -> object | None:
-        if gm is not None:
-            return cls(
-                straight_two_phase=BallModelStraightTwoPhase.from_proto(getattr(gm,"straight_two_phase",None)),
-                chip_fixed_loss=BallModelChipFixedLoss.from_proto(getattr(gm,"chip_fixed_loss",None))
-            )
-        else:
-            return None
+    def from_proto(cls,gm):
+        return cls(
+            straight_to_phase=float(gm.straight_to_phase),
+            chip_fixed_loss=float(gm.chip_fixed_loss)
+        )
         
 class GeometryData():
     """
@@ -254,13 +209,10 @@ class GeometryData():
         self.calibration : CameraCalibration = calibration
         self.models : GeometryModels= models
     
-    def __repr__(self):
-        return f"{self.field=} \n{self.calibration=} \n{self.models=}"
-    
     @classmethod
     def from_proto(cls,gd):
         return cls(
-            field=FieldSize.from_proto(gd.field),
-            calibration=[CameraCalibration.from_proto(cc) for cc in gd.calib],
-            models=GeometryModels.from_proto(getattr(gd,"models",None))
+            field=FieldSize(gd.field),
+            calibration=[CameraCalibration(cc) for cc in gd.calib],
+            models=getattr(gd,"models",None)
         )
