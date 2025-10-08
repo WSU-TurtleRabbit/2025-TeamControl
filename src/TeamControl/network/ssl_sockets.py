@@ -1,49 +1,76 @@
-from TeamControl.network.proto2 import ssl_vision_wrapper_pb2,ssl_vision_detection_tracked_pb2,ssl_gc_referee_message_pb2
+"""
+network_interfaces.py
+
+Provides network interfaces for SSL-Vision and grSim simulator communication.
+
+Classes:
+    Vision          - SSL-Vision multicast receiver.
+    VisionTracker   - SSL-Vision tracked data receiver.
+    GameControl     - Referee/GameController receiver.
+    grSimVision     - Vision receiver for grSim simulator output.
+    grSimSender     - UDP sender for grSim robot control.
+
+Author:
+    Emma — 2025
+"""
+
+from TeamControl.network.proto2 import (
+    ssl_vision_wrapper_pb2,
+    ssl_vision_detection_tracked_pb2,
+    ssl_gc_referee_message_pb2)
 from TeamControl.network.receiver import Multicast
 from TeamControl.network.sender import Sender
 from TeamControl.network.grSim_commands import GrSimRobotCommands
 
 
-# Classes of Vision Wolrd Receivers
+# ===============================
+# SSL-VISION RECEIVERS
+# ===============================
 class Vision(Multicast):
-    """ Vision SSL multicast receiver
-        world vision SSL  mulitcast listener
+    """
+    SSL-Vision multicast receiver.
+
+    Receives raw SSL-Vision packets via UDP multicast.
+    These packets contain data about detected balls and robots from the vision system.
+
     Args:
-        Multicast (Class): base Class
+        port (int): Port for the SSL-Vision multicast. Defaults to 10006.
     """
     def __init__(self,port : int=10006) -> None:
-        """
-        Initialising Multicast Vision SSL Socket
-
-        Args:
-            world_model (wm): current world model
-            port (int, optional): Port for Vision World multicast. Defaults to 10005. change accordingly if needed
-        """
         decoder :object = ssl_vision_wrapper_pb2.SSL_WrapperPacket()
         group : str = "224.5.23.2"
         buffer_size : int = 6000
-        super().__init__(port=port,group=group,decoder=decoder,buffer_size=buffer_size)
+        super().__init__(port=port, group=group, decoder=decoder, buffer_size=buffer_size)
    
-    def listen(self) -> bool:
-        vision_data,addr = super().listen()
+    def listen(self) -> ssl_vision_wrapper_pb2.SSL_WrapperPacket:
+        """
+        Listen for incoming SSL-Vision packets.
+
+        Returns:
+            SSL_WrapperPacket: decoded vision data.
+        """
+        vision_data, addr = super().listen()
         return vision_data
             
 class VisionTracker(Multicast):
     """
-    For Tracked Packets
+    SSL-Vision tracked data receiver.
 
-    Args:
-        Multicast: the recv socket
+    Listens to processed (tracked) packets from the SSL vision system.
     """
-    def __init__(self, port, group, decoder, buffer_size = 6000, timeout = 1):
-        port = 1234
+    def __init__(self, port: int = 1234, group: str = "224.5.23.2",
+                 buffer_size: int = 6000, timeout: float = 1.0) -> None:
         decoder = ssl_vision_detection_tracked_pb2.TrackerWrapperPacket()
-        group : str = "224.5.23.2"
-        buffer_size : int = 6000
-        super().__init__(port, group, decoder, buffer_size, timeout)
+        super().__init__(port=port, group=group, decoder=decoder, buffer_size=buffer_size, timeout=timeout)
+
 
 
 class GameControl(Multicast):
+    """
+    SSL-GameController multicast receiver.
+
+    Receives referee messages containing play state, goals, team info, etc.
+    """
     def __init__(self) -> None:
         group : str = '224.5.23.1'
         port : int = 10003
@@ -53,50 +80,78 @@ class GameControl(Multicast):
         super().__init__(port=port, group=group, decoder=decoder, buffer_size=buffer_size,timeout=timeout)
         
     def listen(self) -> ssl_gc_referee_message_pb2.Referee:
-        # see Multicast listen(), decode()
+        """
+        Listen for referee messages.
+
+        Returns:
+            Referee: decoded referee message protobuf.
+        """
         data, addr = super().listen()
         return data
     
 
 class grSimVision(Vision):
+    """
+    Vision receiver for the grSim simulator.
+
+    Listens to simulated camera data broadcasted by grSim.
+    """
     def __init__(self, port : int=10020) -> None:
-        """
-        Initialising Multicast GR Sim World Socket
-        
-        Args:
-            ip (str, optional): ip of the grSim device. Defaults to None -> local.
-            port (int, optional): port of grSim Vision. Defaults to 10020.
-        """
         super().__init__(port=port)
         
-### Simulation Control ### 
-
+# ===============================
+# GRSIM COMMAND SENDER
+# ===============================
 class grSimSender(Sender):
-    def __init__(self, ip: str = "127.0.0.1", port : int = 20010,is_yellow = True) -> None: #please check and verify this port
+    """
+    UDP sender for grSim robot commands.
+
+    Responsible for encoding and sending control packets to the grSim simulator.
+    """
+
+    def __init__(self, ip: str = "127.0.0.1", port : int = 20010, is_yellow = True) -> None:
+        """
+        Initialize grSim sender.
+
+        Args:
+            ip (str): Destination IP address of the grSim simulator.
+            port (int): Destination port for control commands.
+            is_yellow (bool): Whether this sender controls the yellow team.
+        """
         self.is_yellow = is_yellow 
         self.GSC = GrSimRobotCommands(isYellow=is_yellow)
         super().__init__(ip=ip,port=port)
     
-    def new_raw_command(self,robot_id,vx=0.0,vy=0.0,w=0.0,k=0,d=0,use_team_color=True):
-        return GSC.new_command(robot_id=robot_id,vx=vx,vy=vy,w=w,k=k,d=d,use_team_color=use_team_color)
+    def new_raw_command(self, robot_id, vx=0.0, vy=0.0, w=0.0, k=0, d=0, use_team_color=True):
+        """
+        Generate a new grSim robot command.
+
+        Returns:
+            grSim_Commands_pb2.grSim_Commands: command packet.
+        """
+        return self.GSC.new_command(robot_id=robot_id,vx=vx,vy=vy,w=w,k=k,d=d,use_team_color=use_team_color)
     
     def send(self,msg) -> None:
         """
-        send GrSimRobotCommands or bytes to grSim
+        Send a command to grSim.
+
+        Args:
+            msg (grSim_Commands_pb2.grSim_Commands | bytes): Command to send.
         """
         if not isinstance(msg,bytes):
             try:
                 msg = self.GSC.encode(msg)
             except Exception as e:
-                raise(e, "Error with GRSIM message packing")
+                raise ValueError(f"Error encoding grSim message: {e}")
         self.sock.sendto(msg,self.destination)
     
     def send_command(self, robot_command,use_team_color=True) -> None:
-        """send_command
-        
-        sending Command over grsim command sender port
-        
-        converting RobotCommands into grSim commands
+        """
+        Convert a RobotCommand object into a grSim command and send it.
+
+        Args:
+            robot_command (RobotCommand): The robot command object.
+            us (bool): Whether this is for our team (True) or the opponent.
         """
         packet = self.GSC.convert(robot_command=robot_command,use_team_color=use_team_color)
         encoded_msg = self.GSC.encode(packet)
