@@ -26,13 +26,12 @@ def sandbox_process(wm):
                 robot_obj = wm.get_yellow_robots(isYellow=is_yellow,robot_id=robot_id)
                 robots = wm.get_yellow_robots(isYellow=is_yellow,robot_id=None)
                 robot_pos = robot_obj.position
-                robot_obstacle = robot_obj.obstacle
                 ball = wm.get_latest_frame().ball.position
             except Exception :
                 robot_pos = 0,0,0
                 ball = 0,0
                 
-        vx, vy, w = RobotMovement.goToPoint(robot_pos=robot_pos, target=ball)
+        vx, vy = RobotMovement.goToPoint(robot_pos=robot_pos, target=ball)
         
-        cmd = RobotCommand(robot_id=1, vx=vx, vy=vy, w=w, kick=0, dribble=0)
+        cmd = RobotCommand(robot_id=1, vx=vx, vy=vy, w=0.0, kick=0, dribble=0)
         sender.send_command(cmd)
