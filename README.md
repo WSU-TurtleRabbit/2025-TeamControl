@@ -1,8 +1,6 @@
 # Team Control (2025)
 
-This is the Repository for Our server-side operation
-
-To see the difference between this and last year's version, please see [here](/docs/DifferenceFromLastVersion.md). 
+This is the Repository for our server-side operation.
 
 ---
 
@@ -13,6 +11,8 @@ To install this module, do
 ```
 git clone https://github.com/WSU-TurtleRabbit/2025-teamcontrol.git
 ```
+
+### Create the virual environment and activate it
 Then we will have to create a virtual environment. 
 In Linux : 
 ```bash
@@ -38,6 +38,7 @@ In Windows :
 .\.venv\Scripts\activate.bat
 ```
 
+### Install necessary modules
 Then install the modules and this project as *Editable* project (that uses `pyproject.toml`)
 ```bash 
 pip install -e . 
@@ -62,8 +63,8 @@ This is then the modules install using `requirement.txt` (which is another way t
 
 If got into any error, please copy or screenshot text and post it in Mattermost Chat, and await for reply. 
 
-
-To deactivate a virtual environment use :
+### Deactivate the virtual environment
+To deactivate a virtual environment use:
 In Linux : 
 ```bash
 deactivate 
@@ -72,3 +73,36 @@ In Windows :
 ```powershell
 .\.venv\Scripts\deactivate.bat
 ```
+
+## Repository structure
+
+- **docs/** – Contains documentation, and usage guides.  
+- **src/** – Houses the core source code for the project.  
+  - **TeamControl/** – The main package for robot and network control.  
+    - **network/** – Handles communication between the PC and the robots/simulation.  
+    - **robot/** – Contains modules for robot behavior.  
+    - **SSL/** – Implements Small Size League–specific software (game controller, grSim, vision).  
+    - **utils/** – General-purpose helper functions.  
+    - **world/** – Everything related to the world model.  
+    - **main.py** – Primary entry script to start the system (on the real robots).  
+- **tests/** – Includes test suites to ensure code reliability and correctness.  
+- **pyproject.toml** – Defines project metadata, dependencies, and build configuration.  
+- **setup.sh** – Shell script to set up the development environment.  
+- **README.md** – Main documentation file (this file).  
+
+### Code 
+
+TODO (What code is actually interesting for the students?)
+
+robot - Movement.py
+SSL/grSim - Entry point to run the simulation
+
+
+## Running code in grSim
+1. Run grSim `./bin/grSim`
+2. ...
+
+TODO (Step by step guide)
+
+- Setting the correct ports
+- Running sandbox.py
