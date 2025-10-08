@@ -9,7 +9,6 @@ class RobotMovement:
         robot_pos: tuple[float, float, float], 
         target: tuple[float, float], 
         velocity: float = 1.0, 
-        stop_threshold: float = 150
     ) -> tuple[float, float]:
         """
         Calculate the velocity (vx, vy) for the robot to move towards a target point
@@ -35,7 +34,7 @@ class RobotMovement:
         distance = math.sqrt(dx**2 + dy**2)
 
         # If close enough, stop
-        if distance <= stop_threshold:
+        if distance == 0:
             return 0.0, 0.0
 
         # Normalize direction and scale by velocity
