@@ -1,6 +1,9 @@
 """ BaseSocket.py
-This is the fundamental creation of socket.
-This stores all the important, highly reusable functions of a socket
+Fundamental socket creation and management module.
+
+This module provides a reusable BaseSocket class that simplifies the creation 
+and configuration of UDP, broadcast, and multicast sockets. It includes 
+methods for automatic IP detection, port generation, and socket binding.
 
 Author : Emma
 Notes / Comments
@@ -13,31 +16,46 @@ import time
 import random
 import os 
 import ast
-#enum
 import enum
 from enum import auto
-
-# Log
 import logging
+
+# Configure logging
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
-
 class SocketType(enum.IntEnum):
+    """
+    Enum for supported socket types.
+    """
     SOCK_BROADCAST_UDP = auto()
     SOCK_UDP = auto()
     SOCK_MULTICAST_UDP = auto()
 
 class BaseSocket():
+    """
+    Base class for socket creation and management.
+
+    Provides automatic initialization, optional binding to a port, and utilities 
+    for IP and port management.
+
+    Attributes:
+        ip (str): IP address of this device. Auto-detected if not specified.
+        port (int): Port number of the socket. Randomized if 0 is provided.
+        type (SocketType): Type of socket (UDP, Broadcast, Multicast).
+        sock (socket.socket): Underlying socket object.
+        is_ready (bool): Indicates if the socket is successfully initialized and bound.
+    """
     
-    def __init__(self,type:SocketType,ip:str=None, port:int=0,binding:bool=False):
-        """BaseSocket - the basics of socket
+    def __init__(self, type:SocketType, ip:str=None, port:int=0, binding:bool=False):
+        """
+        Initialize the BaseSocket.
 
         Args:
-            type (SocketType): SocketType Enum
-            ip (str, optional): This Device IP. Defaults to None (get from system).
-            port (int, optional): Port of Socket. Defaults to 0(randomised).
-            binding (bool, optional): Binds the socket to a specific port for reusability. Defaults to False.
+            type (SocketType): Type of socket to create (UDP, Broadcast, Multicast).
+            ip (str, optional): Device IP address. Defaults to None (auto-detect).
+            port (int, optional): Port number. Defaults to 0 (randomized).
+            binding (bool, optional): If True, binds the socket to the IP and port. Defaults to False.
         """
         self.ip:str = ip
         self.port:int = port
@@ -46,38 +64,45 @@ class BaseSocket():
         self.is_ready = self._bind_sock() if binding is True else True
 
     @property 
-    def ip(self):
+    def ip(self) -> str:
+        """Get the IP address of the socket."""
         return self._ip
 
     @ip.setter
     def ip (self,value):
-        if value is None: # since not specified , using system's IP
+        """Set the IP address of the socket."""
+        if value is None: # since not specified, using system's IP
             value = self._obtain_sys_ip()
         if not isinstance(value, str): # type validation
-            raise TypeError(f"Need IP Address (v4) in string formmat, received {type(value)}")
+            raise TypeError(f"IP Address (v4) must be a string, received {type(value)}")
         self._ip = value
 
     @property 
-    def port(self):
+    def port(self) -> int:
+        """Get the port number of the socket."""
         return self._port
     
     @port.setter
     def port(self,value:int):
-        if not isinstance(value,int): # type validation
-            raise TypeError(f"We need an Integer value not {type(value)=}")
-        if value == 0: #use generated port
+        """Set the port number, generating a random one if value is 0."""
+        if not isinstance(value, int): # type validation
+            raise TypeError(f"Port must be an integer, got {type(value)}")
+        if value == 0: # use generated port
             self._port = self._generate_port()
             self.use_generated_port = True 
         elif 1024 < value < 65535:  # do not edit this !!!
             self._port = value
             self.use_generated_port = False    
         else:
-            raise ValueError("Port must be in range 1024 ~ 65535")
+            raise ValueError("Port must be in range 1024 - 65535")
         
     @property
-    def addr(self):
-        """Returns:
-            tuple: ip address + port
+    def addr(self) -> tuple:
+        """
+        Get the socket's address as a tuple.
+
+        Returns:
+            tuple: (IP, port)
         """
         return (self.ip,self.port)
     
@@ -88,12 +113,18 @@ class BaseSocket():
         return f"{self.__class__.__name__} created on {self.addr}, available = {self.is_ready}"
     
     def close(self):
-        """closes the socket"""
+        """Close the socket and mark it as not ready."""
         self.is_ready = False
     
     def _bind_sock(self) -> bool:
         """
-        Binds the socket to it's ip and a port
+        Bind the socket to its IP and port.
+
+        Returns:
+            bool: True if binding was successful.
+
+        Raises:
+            ConnectionError: If the socket cannot be bound after several attempts.
         """
         is_binded = False
         tries = 0
@@ -105,23 +136,27 @@ class BaseSocket():
                 is_binded = True
             except socket.error as se:
                 is_binded = False
-                log.debug(f"socket binding fail {se}")
+                log.debug(f"socket binding failed: {se}")
                 if self.use_generated_port is True: 
                     # generates port and tries again
                     self.port = self._generate_port()
-                continue                    
+                tries += 1
+                continue   
+
         if is_binded is False:
             raise ConnectionError("Socket was not Activated Correctly")    
         return is_binded
         
     @staticmethod
     def _init_sock(type:SocketType) -> socket.socket:
-        """ Initialise socket
-        Initailise socket for broadcasting in UDP
+        """
+        Initialize a socket of the specified type.
+
         Args:
-            type(SocketType):an Enum from SocketType
+            type (SocketType): Type of socket.
+
         Returns:
-            socket.socket: returns the initailised socket
+            socket.socket: Initialized socket object.
         """
         if type == SocketType.SOCK_BROADCAST_UDP:
             broadcast = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -140,13 +175,13 @@ class BaseSocket():
     @staticmethod
     def _obtain_sys_ip() -> str:
         """
-        Obtaining system's ip address *This may not work in Arch linux
-        Params:
-            os_system(sys.platform) =  current os_system.
-        Raises:
-            ValueError: No matching os system, cannot obtain IP, will need to input manually.
+        Attempt to obtain the system's IP address automatically.
+
         Returns:
-            ip (str): system's ip address
+            str: IP address of the device.
+
+        Raises:
+            ValueError: If the IP cannot be obtained automatically.
         """
         os_system = sys.platform
         match os_system:
@@ -159,22 +194,45 @@ class BaseSocket():
             case 'darwin':
                 ip = os.popen('ipconfig getifaddr en0').read().strip()
             case _:
-                raise ValueError("Cannot Obtain IP, Please input ip address manually")       
+                raise ValueError("Cannot obtain IP, please input ip address manually")       
         return ip
     
     @staticmethod
     def _generate_port() -> int:
+        """
+        Generate a random port number in the range 5000-9000.
+
+        Returns:
+            int: Random port number.
+        """
         port = random.randint(5000, 9000)
         log.debug(f"port generated : {port}")
         return port
-
     
     @staticmethod
     def is_valid_port(port: int) -> bool:
+        """
+        Validate if a port number is within the valid range.
+
+        Args:
+            port (int): Port number to validate.
+
+        Returns:
+            bool: True if valid, False otherwise.
+        """
         return 1024 < port < 65535
     
     @staticmethod
-    def string_to_tuple(ip_with_port_string:str) -> tuple :
+    def string_to_tuple(ip_with_port_string:str) -> tuple:
+        """
+        Convert a string representation of an address to a tuple.
+
+        Args:
+            ip_with_port_string (str): Address string in format "(IP, port)".
+
+        Returns:
+            tuple: (IP, port)
+        """
         return ast.literal_eval(ip_with_port_string)
 
     
