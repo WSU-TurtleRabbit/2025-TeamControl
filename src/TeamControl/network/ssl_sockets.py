@@ -77,8 +77,8 @@ class grSimSender(Sender):
         self.GSC = GrSimRobotCommands(isYellow=is_yellow)
         super().__init__(ip=ip,port=port)
     
-    def new_raw_command(self,robot_id,vx=0.0,vy=0.0,w=0.0,k=0,d=0,us=True):
-        return GSC.new_command(robot_id=robot_id,vx=vx,vy=vy,w=w,k=k,d=d,us=us)
+    def new_raw_command(self,robot_id,vx=0.0,vy=0.0,w=0.0,k=0,d=0,use_team_color=True):
+        return GSC.new_command(robot_id=robot_id,vx=vx,vy=vy,w=w,k=k,d=d,use_team_color=use_team_color)
     
     def send(self,msg) -> None:
         """
@@ -91,14 +91,14 @@ class grSimSender(Sender):
                 raise(e, "Error with GRSIM message packing")
         self.sock.sendto(msg,self.destination)
     
-    def send_command(self, robot_command,us=True) -> None:
+    def send_command(self, robot_command,use_team_color=True) -> None:
         """send_command
         
         sending Command over grsim command sender port
         
         converting RobotCommands into grSim commands
         """
-        packet = self.GSC.convert(robot_command=robot_command,us=us)
+        packet = self.GSC.convert(robot_command=robot_command,use_team_color=use_team_color)
         encoded_msg = self.GSC.encode(packet)
         self.send(encoded_msg)
         
