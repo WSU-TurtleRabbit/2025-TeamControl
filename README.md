@@ -100,6 +100,9 @@ src/TeamControl/robot/Movement.py
 Entry point for the grSim simulation:
 src/TeamControl/SSL/grSim/sandbox.py
 
+Entry point for setting the behavior:
+src/TeamControl/SSL/grSim/sandbox_process.py
+
 
 ## Running code in grSim
 1. Run grSim `./bin/grSim`
