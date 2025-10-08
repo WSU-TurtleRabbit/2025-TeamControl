@@ -9,7 +9,7 @@ class RobotMovement():
                            turning_target:tuple[float, float] = None 
                            , stop_threshold = 150) -> tuple[float, float, float]: 
         '''
-        Gets the velocity required for the robot go to position and trun to target
+        Gets the velocity required for the robot go to position and turn to target
         '''
         if robot_pos is None:
             print("Robot pos is none")
@@ -32,7 +32,7 @@ class RobotMovement():
         return vx, vy, w
     
     @staticmethod
-    def turn_to_target(target:tuple[float,float] =None, epsilon: float=0.15, speed: float = 5, robotOmega = None):
+    def turn_to_target(target:tuple[float,float] =None, epsilon: float=0.15, speed: float = 5, w = None):
         '''
             This function returns an agular velocity. The goal is to turn the robot
             in such a way that it is facing the ball with its kicker side.
@@ -48,14 +48,14 @@ class RobotMovement():
 
         if abs(orientation_to_ball) < epsilon:
             # to avoid jitter
-            omega = 0
+            w = 0
         elif abs(orientation_to_ball) > epsilon and abs(orientation_to_ball) < 2 * epsilon:
-            omega = -speed*np.sign(orientation_to_ball) * 0.05
+            w = -speed*np.sign(orientation_to_ball) * 0.05
         else:
-            omega = speed*np.sign(orientation_to_ball)* 0.5
+            w = speed*np.sign(orientation_to_ball)* 0.5
         
         print(orientation_to_ball)
-        return omega 
+        return w 
     
     @staticmethod
     def go_To_Target(target_pos: tuple[float,float], speed: int=1, stop_threshold:float=150):
