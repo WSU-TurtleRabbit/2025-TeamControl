@@ -32,7 +32,7 @@ def sandbox_process(wm):
                 robot_pos = 0,0,0
                 ball = 0,0
                 
-        vx, vy, w = RobotMovement.velocity_to_target(robot_pos=robot_pos, target=ball)
+        vx, vy, w = RobotMovement.goToPoint(robot_pos=robot_pos, target=ball)
         
         cmd = RobotCommand(robot_id=1, vx=vx, vy=vy, w=w, kick=0, dribble=0)
         sender.send_command(cmd)
