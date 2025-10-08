@@ -2,6 +2,7 @@ import math
 from TeamControl.world.transform_cords import world2robot
 
 class RobotMovement:
+    """Provides basic movement control utilities for robots."""
     
     @classmethod
     def goToPoint(

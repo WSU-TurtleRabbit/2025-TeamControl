@@ -94,8 +94,11 @@ In Windows :
 
 TODO (What code is actually interesting for the students?)
 
-robot - Movement.py
-SSL/grSim - Entry point to run the simulation
+goToPoint function is located here:
+src/TeamControl/robot/Movement.py
+
+Entry point for the grSim simulation:
+src/TeamControl/SSL/grSim/sandbox.py
 
 
 ## Running code in grSim
