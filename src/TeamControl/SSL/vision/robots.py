@@ -1,5 +1,3 @@
-from TeamControl.voronoi_planner.obstacle import Obstacle
-
 import numpy as np
 
 
@@ -40,25 +38,7 @@ class Robot:
         return np.array([self.x, self.y, self.o], dtype=np.float32)
     
     # def __lt__(self,other):
-    #     return self.id < other.id
-    
-    @property
-    def obstacle(self) -> Obstacle: # To Rafael: Change Value if needed
-        """
-        Returns a Voronoi-compatible obstacle representation of this robot.
-
-        Returns:
-            Obstacle: Circular obstacle for collision planning.
-        """
-        # buffer = 250
-        # top_left= [self.x-buffer, self.y+buffer]
-        # bottom_right= [self.x+buffer, self.y-buffer]
-        # return Obstacle(top_left, bottom_right)
-    
-        return Obstacle(point=(self.x,self.y),
-                        radius=90,
-                        unum=self.id,
-                        isYellow=self.isYellow)    
+    #     return self.id < other.id   
     
     def __repr__(self):
         color = 'Yellow' if self.isYellow else 'Blue'
