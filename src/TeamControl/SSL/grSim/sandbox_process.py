@@ -30,8 +30,11 @@ def sandbox_process(wm):
             except Exception :
                 robot_pos = 0,0,0
                 ball = 0,0
-                
-        vx, vy = RobotMovement.goToPoint(robot_pos=robot_pos, target=ball)
+        
+        #target_position = 0,0   # You can see clear jitter here
+        target_position = ball    
+
+        vx, vy = RobotMovement.goToPoint(robot_pos=robot_pos, target=target_position)
         
         cmd = RobotCommand(robot_id=1, vx=vx, vy=vy, w=0.0, kick=0, dribble=0)
         sender.send_command(cmd)
