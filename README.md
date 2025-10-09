@@ -90,21 +90,56 @@ In Windows :
 - **setup.sh** – Shell script to set up the development environment.  
 - **README.md** – Main documentation file (this file).  
 
-### Code 
+## Code 
 
-TODO (What code is actually interesting for the students?)
+Most of the code in this repository is provided as a framework, so you do not need to modify everything. To help you get started, here are the main files and functions that are relevant for your lab work:
 
-goToPoint function is located here:
-src/TeamControl/robot/Movement.py
+### Key Functions & Entry Points
+- **Movement Control**
+    - `goToPoint` function
+    - Location: `src/TeamControl/robot/Movement.py`
+    - This is the function you should improve for the first assignment.
+    - Feel free to add more functions to `Movement.py`
+- **Simulation Entry Point**
+    - Start the grSim simulation
+    - Location: `src/TeamControl/SSL/grSim/sandbox.py`
+    - This is where the simulation begins. You can run this to see your robot behavior in action.
+- **Behavior Setup**
+    - This is the process `sandbox.py` runs
+    - Entry point for defining robot behavior
+    - Location: `src/TeamControl/SSL/grSim/sandbox_process.py`
+    - This is where you will implement or modify strategies and behaviors for the robots.
 
-Entry point for the grSim simulation:
-src/TeamControl/SSL/grSim/sandbox.py
+### Important and useful functions/classes
+from TeamControl.world.transform_cords import world2robot
 
-Entry point for setting the behavior:
-src/TeamControl/SSL/grSim/sandbox_process.py
+def world2robot(robot_position,target_position):
+    '''
+        input:
+            Target_position: position in the world coordinate system (x,y)
+            robot_position: robot pose (x, y, theta)
+        output:
+            t: target position in respect to robot coordinate system (x,y)
+    '''
 
+from TeamControl.network.robot_command import RobotCommand 
 
-## Running code in grSim
+class RobotCommand():
+    """
+    RobotCommand represents the desired motion command for a single robot.
+
+    Attributes:
+        robot_id (int): Unique robot identifier.
+        vx (float): Velocity along the X-axis (m/s).
+        vy (float): Velocity along the Y-axis (m/s).
+        w (float): Angular velocity (rad/s).
+        kick (int): Kick flag (0 = no kick, 1 = kick).
+        dribble (int): Dribble flag (0 = off, 1 = on).
+        (time_origin (float): Original creation time of the packet.)
+        (time_set (float): Timestamp when this RobotCommand object was instantiated.)
+    """
+
+## Running Code in grSim
 1. Run grSim `./bin/grSim`
 2. ...
 
