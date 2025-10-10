@@ -23,7 +23,7 @@ This means that :
 - However, if your process is TOO LONG, it can also be that you might missed out on some versions. (but you can technically still get it via retriving a `list_of_frames()`, etc.)
 
 
-**ALWAYS Remember that you cannot do copy of World Model as it does not intend to be use this way ** You will break the auto update and everything to that process if you do so !!**
+**ALWAYS Remember that you cannot make a copy of World Model as it is not intended to be use this way ** You will break the auto update and everything to that process if you do so !!**
 
 # Here are some common errors that you might bump into 
 
@@ -46,5 +46,5 @@ If you have a human on field (that is orange) make sure to cover your skin to ma
 
 # Status Update : 
 
-As of 27 May. 2023, the Multirprocessing has been tested on robot chasing ball on field (using remote_control_process.py). 
+As of 27 May. 2025, the Multiprocessing has been tested on robot chasing ball on field (using remote_control_process.py). 
 
