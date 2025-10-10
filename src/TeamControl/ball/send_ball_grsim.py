@@ -7,6 +7,12 @@ def send_ball_to_grsim(x, y, vx, vy, address="127.0.0.1", port=20011):
     """
     Spawn or move the ball in grSim to position (x, y)
     with velocity (vx, vy).
+
+    Args:
+        x (float): X position in mm.
+        y (float): Y position in mm.
+        vx (float): Velocity in X direction in m/s.
+        vy (float): Velocity in Y direction in m/s.
     """
 
     # Create the BallReplacement message
@@ -37,4 +43,4 @@ def send_ball_to_grsim(x, y, vx, vy, address="127.0.0.1", port=20011):
 
 if __name__ == "__main__":
     # Example:
-    send_ball_to_grsim(x=0.0, y=0.0, vx=2.0, vy=1.0)
+    send_ball_to_grsim(x=0.0, y=0.0, vx=3.0, vy=1.0)
