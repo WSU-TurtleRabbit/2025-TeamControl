@@ -2,8 +2,6 @@
 
 This is the Repository for our server-side operation.
 
----
-
 ## Installation 
 
 To install this module, do
@@ -64,7 +62,6 @@ This is then the modules install using `requirement.txt` (which is another way t
 If got into any error, please copy or screenshot text and post it in Mattermost Chat, and await for reply. 
 
 ### Deactivate the virtual environment
-To deactivate a virtual environment use:
 In Linux : 
 ```bash
 deactivate 
@@ -79,6 +76,7 @@ In Windows :
 - **docs/** – Contains documentation, and usage guides.  
 - **src/** – Houses the core source code for the project.  
   - **TeamControl/** – The main package for robot and network control.  
+    - **ball/** - Contains modules for ball spawning.
     - **network/** – Handles communication between the PC and the robots/simulation.  
     - **robot/** – Contains modules for robot behavior.  
     - **SSL/** – Implements Small Size League–specific software (game controller, grSim, vision).  
@@ -111,8 +109,14 @@ Most of the code in this repository is provided as a framework, so you do not ne
     - This is where you will implement or modify strategies and behaviors for the robots.
 
 ### Important and useful functions/classes
-from TeamControl.world.transform_cords import world2robot
+**Coordinate transformation**
 
+Import like this:
+`from TeamControl.world.transform_cords import world2robot`
+
+
+What it does:
+```
 def world2robot(robot_position,target_position):
     '''
         input:
@@ -121,9 +125,14 @@ def world2robot(robot_position,target_position):
         output:
             t: target position in respect to robot coordinate system (x,y)
     '''
+```
+**RobotCommand**
 
-from TeamControl.network.robot_command import RobotCommand 
+Import like this:
+`from TeamControl.network.robot_command import RobotCommand`
 
+What it does:
+```
 class RobotCommand():
     """
     RobotCommand represents the desired motion command for a single robot.
@@ -138,12 +147,30 @@ class RobotCommand():
         (time_origin (float): Original creation time of the packet.)
         (time_set (float): Timestamp when this RobotCommand object was instantiated.)
     """
+```
+
+**Spawning a ball**
+
+Import like this:
+`from TeamControl.ball.send_ball_grsim import send_ball_to_grsim`
+
+What it does:
+```
+def send_ball_to_grsim(x, y, vx, vy, address="127.0.0.1", port=20011):
+    """
+    Spawn or move the ball in grSim to position (x, y)
+    with velocity (vx, vy).
+
+    Args:
+        x (float): X position in mm.
+        y (float): Y position in mm.
+        vx (float): Velocity in X direction in m/s.
+        vy (float): Velocity in Y direction in m/s.
+    """
+```
 
 ## Running Code in grSim
-1. Run grSim `./bin/grSim`
-2. ...
-
-TODO (Step by step guide)
-
-- Setting the correct ports
-- Running sandbox.py
+1. Run grSim `./bin/grSim` (in one terminal)
+2. Check that the “vision port” in sandbox.py is set to the same value as “Vision multicast port” in grSim
+3. Check that the “CMD_LISTEN_PORT” in sandbox_process.py is set to the same value as “Command listen port” in grSim
+4. Run `sandbox.py` (in another terminal)
