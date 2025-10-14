@@ -66,8 +66,8 @@ def sandbox_process(wm) -> None:
                 ball_pos = 0,0
         
         # Set target position
-        #target_position = 0,0   # You can see clear jitter here
-        target_position = ball_pos    
+        #target_position = 0,0      # Center of the field
+        target_position = ball_pos  # Ball
 
         # Compute velocities to move toward the target
         vx, vy = RobotMovement.goToPoint(robot_pos=robot_pos, target=target_position)
