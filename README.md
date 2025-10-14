@@ -1,6 +1,6 @@
-# Team Control (2025)
+# RoboCup SSL - Robot Control
 
-This is the Repository for our server-side operation.
+This is the code you will need to control the SSL robots in grSim and also to control the real robots.
 
 ## Installation 
 
@@ -48,18 +48,6 @@ If you want to know what was installed (and what version), you can do :
 ```bash
 pip list
 ```
-or you can get a file called `requirement.txt` as a backup for the current modules and stuff.
-To do so, in Linux : 
-```bash
-pip freeze > requirement.txt
-```
-afterwards, you can do : 
-```bash
-pip install -r requirement.txt
-```
-This is then the modules install using `requirement.txt` (which is another way to do it). To learn more, see [how to setup a python project](https://github.com/WSU-TurtleRabbit/how-to/blob/b2daf710f8d522aca7eadc72b78dd3002f60de95/Code/PythonProjectSetup.md)
-
-If got into any error, please copy or screenshot text and post it in Mattermost Chat, and await for reply. 
 
 ### Deactivate the virtual environment
 In Linux : 
