@@ -19,7 +19,6 @@ class RobotMovement:
             robot_pos (tuple[float, float, float]): Robot's current position (x, y, theta) in world coordinates.
             target (tuple[float, float]): Target position in world coordinates.
             velocity (float, optional): Constant velocity to move towards the target. Defaults to 1.0.
-            stop_threshold (float, optional): Distance threshold to stop near the target. Defaults to 150.
 
         Returns:
             tuple[float, float]: Velocity components (vx, vy) in robot coordinates.
