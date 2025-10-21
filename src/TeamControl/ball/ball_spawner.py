@@ -37,10 +37,15 @@ class BallSpawner:
         Width of the goal (in mm).
     """
 
-    def __init__(self, division='B', ball_speed=5.0, goal_probability=0.5):
+    def __init__(self, division='B', ball_speed=5.0, goal_probability=0.5,
+                 seed=None):
         self.division = division
         self.ball_speed = ball_speed
         self.goal_probability = goal_probability
+        if seed is None:
+            seed = random.randrange(0, 10000)
+
+        self.random_gen = random.Random(seed)
 
         if self.division == 'B':
             self.field_x_min, self.field_x_max = -4500, 4500
@@ -57,18 +62,18 @@ class BallSpawner:
 
     def spawn_next_ball(self):
         """Return (x, y, vx, vy) for the next ball."""
-        if random.random() < self.goal_probability:
+        if self.random_gen.random() < self.goal_probability:
             return self.shoot_at_goal()
         else:
             return self.shoot_at_random_target()
 
     def shoot_at_goal(self):
         """Shoot a ball toward a random point within the goal."""
-        ball_x = random.uniform(0, 1)
-        ball_y = random.uniform(-1, 1)
+        ball_x = self.random_gen.uniform(0, 1)
+        ball_y = self.random_gen.uniform(-1, 1)
 
         target_x = self.goal_line_x
-        target_y = random.uniform(-self.goal_width / 2, self.goal_width / 2)
+        target_y = self.random_gen.uniform(-self.goal_width / 2, self.goal_width / 2)
 
         ratio = (target_y - ball_y) / (target_x - ball_x)
         vx = self.ball_speed
@@ -77,10 +82,10 @@ class BallSpawner:
 
     def shoot_at_random_target(self):
         """Shoot a ball toward a random point in the field."""
-        ball_x = random.uniform(0, 1)
-        ball_y = random.uniform(-1, 1)
+        ball_x = self.random_gen.uniform(0, 1)
+        ball_y = self.random_gen.uniform(-1, 1)
 
-        ratio = random.uniform(-1, 1)
+        ratio = self.random_gen.uniform(-1, 1)
         vx = self.ball_speed
         vy = self.ball_speed * ratio
         return ball_x, ball_y, vx, vy
