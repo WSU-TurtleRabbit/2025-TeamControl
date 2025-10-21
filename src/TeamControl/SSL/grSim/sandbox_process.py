@@ -39,7 +39,7 @@ def sandbox_process(wm) -> None:
     SIM_IP = "127.0.0.1"
     CMD_LISTEN_PORT = 20011
     IS_YELLOW = True
-    ROBOT_ID = 1
+    ROBOT_ID = 0
 
     # Initialize grSim command sender
     sender = grSimSender(ip=SIM_IP,port=CMD_LISTEN_PORT,is_yellow=IS_YELLOW)
@@ -73,5 +73,5 @@ def sandbox_process(wm) -> None:
         vx, vy = RobotMovement.goToPoint(robot_pos=robot_pos, target=target_position)
         
         # Create and send the command
-        cmd = RobotCommand(robot_id=1, vx=vx, vy=vy, w=0.0, kick=0, dribble=0)
+        cmd = RobotCommand(robot_id=0, vx=vx, vy=vy, w=0.0, kick=0, dribble=0)
         sender.send_command(cmd)
