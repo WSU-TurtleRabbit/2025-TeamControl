@@ -35,12 +35,34 @@ class RobotMovement:
         dx, dy = target_robot_frame
         distance = math.sqrt(dx ** 2 + dy ** 2)
 
-        # If close enough, stop
-        if distance <= 100:
-            return 0.0, 0.0
-
         # Normalize direction and scale by velocity
-        vx = (dx / distance) * velocity
-        vy = (dy / distance) * velocity
+        if distance > 300:
+            vx = (dx / distance) * velocity
+            vy = (dy / distance) * velocity
+
+        elif 150 < distance <= 300:
+            vx = (dx / distance) * (velocity / 3)
+            vy = (dy / distance) * (velocity / 3)
+
+        elif 10 < distance <= 150:
+            vx = (dx / distance) * (velocity / 7)
+            vy = (dy / distance) * (velocity / 7)
+
+        elif distance <= 10:
+            vx = 0
+            vy = 0
 
         return vx, vy
+
+    @classmethod
+    def rotate_to_target(cls, robot_pos, target_angle, ang_vel=0.8):
+        """
+        Calculate the angular velocity  for the robot to rotate and reach the 
+        target angle.
+        """
+        robot_angle = robot_pos[2]
+        if target_angle - math.pi/45 < robot_angle < target_angle + math.pi/45:
+            ang_vel = 0
+
+        return ang_vel
+    
