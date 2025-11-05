@@ -16,6 +16,7 @@ from TeamControl.robot.smooth_movement import RobotMovement
 from TeamControl.robot.shooting import RobotShooting
 from TeamControl.robot.obstacle_avoidance import AvoidObstacle
 import math
+import time
 
 # --------------------------
 # Ball idle spawner parameters
@@ -52,8 +53,9 @@ def striker_process(wm) -> None:
     # Initial ball spawn
     x, y, vx, vy = spawner.spawn_next_ball(robot_pos)
     send_ball_to_grsim(x, y, vx, vy)
-
-    while True:
+    start_time = time.time()
+    while time.time() - start_time < 90:
+        print(time.time() - start_time)
         # Update world model when new frame is available
         # while time < 1 and mode == testing
         if version < wm.get_version():

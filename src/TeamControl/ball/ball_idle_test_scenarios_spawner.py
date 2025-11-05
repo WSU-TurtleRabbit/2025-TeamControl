@@ -8,7 +8,7 @@ from TeamControl.network.ssl_sockets import grSimSender
 
 
 class BallIdleSpawner:
-    total_ball_spawning_calls = 0
+    test_scenarios = [(2, -0.5), (3.5, -1.5), (3.9, 1.8), (1, 0), (0.5, 0), (0.1, 0.2)]
 
     def __init__(self, division='B', seed=None):
         self.division = division
@@ -32,13 +32,12 @@ class BallIdleSpawner:
 
     def spawn_next_ball(self, robot_pos):
         """Return (x, y, vx, vy) for the next ball."""
-        test_scenarios = [(2, -0.5), (3.5, -1.5), (3.9, 1.8), (1, 0), (0.5, 0), (0.1, 0.2)]
-        while BallIdleSpawner.total_ball_spawning_calls < 6:
-            ball_pos = test_scenarios[BallIdleSpawner.total_ball_spawning_calls]
+        while BallIdleSpawner.test_scenarios:
+            ball_pos = BallIdleSpawner.test_scenarios[0]
             ball_x = ball_pos[0]
             ball_y = ball_pos[1]
             vx = vy = 0
-            BallIdleSpawner.total_ball_spawning_calls += 1
+            BallIdleSpawner.test_scenarios.pop(0)
             return ball_x, ball_y, vx, vy
 
         ball_pos_max_x = 0.9 * self.field_x_max / 1000
