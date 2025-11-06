@@ -15,8 +15,8 @@ Steps:
 
 Target Points:
 - `target_position = (0, 0)`
-- `target_position = (x1, y1)` ← replace with your chosen coordinates
-- `target_position = (x2, y2)` ← replace with your chosen coordinates
+- `target_position = (-2, 3)`
+- `target_position = (0.5, -1)`
 
 ## goalie
 For the goalie demonstration, please configure your ball spawner with the following parameters:
@@ -26,7 +26,7 @@ spawner = BallSpawner(
         division=’B’,
         ball_speed=5.0,
         goal_probability=0.75,
-        seed=...,
+        seed=100,
     )
 ```    
 
