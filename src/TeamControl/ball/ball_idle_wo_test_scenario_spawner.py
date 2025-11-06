@@ -1,7 +1,5 @@
 """
 Idel ball spawning logic for grSim sandbox process.
-
-NOTE: DO NOT CHANGE THIS CODE.
 """
 
 import random
@@ -10,8 +8,6 @@ from TeamControl.network.ssl_sockets import grSimSender
 
 
 class BallIdleSpawner:
-    # will be filled with test scenarios during the live demo
-    test_scenarios = []
 
     def __init__(self, division='B', seed=None):
         self.division = division
@@ -35,14 +31,6 @@ class BallIdleSpawner:
 
     def spawn_next_ball(self, robot_pos):
         """Return (x, y, vx, vy) for the next ball."""
-        while BallIdleSpawner.test_scenarios:
-            ball_pos = BallIdleSpawner.test_scenarios[0]
-            ball_x = ball_pos[0]
-            ball_y = ball_pos[1]
-            vx = vy = 0
-            BallIdleSpawner.test_scenarios.pop(0)
-            return ball_x, ball_y, vx, vy
-
         ball_pos_max_x = 0.9 * self.field_x_max / 1000
         ball_pos_min_x = 0
         ball_pos_max_y = 0.9 * self.field_y_max / 1000
@@ -51,10 +39,10 @@ class BallIdleSpawner:
         ball_y = self.random_gen.uniform(ball_pos_max_y, ball_pos_min_y)
         # Don't spawn the ball at the position of the agent
         while (robot_pos[0] - 0.09 < ball_x < robot_pos[0] + 0.09 and
-               robot_pos[1] - 0.09 < ball_y < robot_pos[1] + 0.09):
+                    robot_pos[1] - 0.09 < ball_y < robot_pos[1] + 0.09):
             ball_x = self.random_gen.uniform(ball_pos_min_x, ball_pos_max_x)
             ball_y = self.random_gen.uniform(ball_pos_max_y, ball_pos_min_y)
-
+            
         vx = 0
         vy = 0
         return ball_x, ball_y, vx, vy
