@@ -19,5 +19,10 @@ To start the striker from `sandbox.py` you can add the following line of code to
 sandbox = Process(target=striker_process, args=(wm,))
 ```
 
+Make sure to import the striker process at the top of `sandbox.py` like this:
+```python
+from TeamControl.SSL.grSim.striker_process import striker_process
+```
+
 **Note**: Same as with the first assignment sheet, please do not change the ball spawning logic or the goal counter as we will use this for the live demonstration.
 
