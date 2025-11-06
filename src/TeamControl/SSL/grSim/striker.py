@@ -11,7 +11,7 @@ This script demonstrates how to:
 from TeamControl.network.ssl_sockets import grSimSender
 from TeamControl.network.robot_command import RobotCommand
 from TeamControl.ball.send_ball_grsim import send_ball_to_grsim
-from TeamControl.ball.ball_idle_test_scenarios_spawner import BallIdleSpawner
+from TeamControl.ball.ball_idle_test_scenarios_spawner_private import BallIdleSpawner
 from TeamControl.robot.smooth_movement import RobotMovement
 from TeamControl.robot.shooting import RobotShooting
 from TeamControl.robot.obstacle_avoidance import AvoidObstacle
@@ -55,7 +55,6 @@ def striker_process(wm) -> None:
     send_ball_to_grsim(x, y, vx, vy)
     start_time = time.time()
     while time.time() - start_time < 90:
-        print(time.time() - start_time)
         # Update world model when new frame is available
         # while time < 1 and mode == testing
         if version < wm.get_version():

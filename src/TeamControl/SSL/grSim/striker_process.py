@@ -48,7 +48,6 @@ def striker_process(wm) -> None:
     start_time = time.time()
     # Timer for 90 seconds (you may change this for development)
     while time.time() - start_time < 90:
-        print(time.time() - start_time)
         # Update world model when new frame is available
         # while time < 1 and mode == testing
         if version < wm.get_version():
