@@ -23,6 +23,7 @@ from TeamControl.world.model_manager import WorldModelManager
 from TeamControl.world.model_runner import wm_runner
 from TeamControl.SSL.grSim.sandbox_process import sandbox_process
 from TeamControl.SSL.grSim.striker import striker_process
+from TeamControl.SSL.grSim.obstacle_avoidance_process import obstacle_avoidance_process
 
 # in multiprocessing this can only be a simple process
 
@@ -65,7 +66,7 @@ def main():
 
     # Sandbox process for sending commands to grSim
     #sandbox = Process(target=sandbox_process, args=(wm,))
-    sandbox = Process(target=striker_process, args=(wm,)) # This is where you will implement your goalie logic
+    sandbox = Process(target=obstacle_avoidance_process, args=(wm,)) # This is where you will implement your goalie logic
 
     # Start all processes
     vision_wkr.start()

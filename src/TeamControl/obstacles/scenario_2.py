@@ -1,0 +1,1 @@
+# Static opponent robots as obstacles
