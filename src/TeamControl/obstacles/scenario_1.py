@@ -13,9 +13,9 @@ def get_scenario():
         dynamic_robots: list of positions (empty here)
     """
     # Example target near opponent goal but outside defense area
-    target_pos = (0, 0) # TODO: Change this
+    target_pos = (4100, 1500)
 
-    static_robots = []  # no static obstacles in this scenario
+    static_robots = {} # no static obstacles in this scenario
     dynamic_robots = []  # no dynamic obstacles either
 
     return target_pos, static_robots, dynamic_robots

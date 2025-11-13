@@ -4,7 +4,7 @@ from shapely.geometry import Point, Polygon
 # ----------------------------------------------------
 # ------------ Constants and Polygons ----------------
 # ----------------------------------------------------
-ROBOT_RADIUS = 8.85 # m
+ROBOT_RADIUS = 85 # m
 COLLISION_DISTANCE = ROBOT_RADIUS * 2 
 
 DEFENSE_AREA_POLYGON = [
@@ -26,6 +26,7 @@ FIELD_POLYGON = Polygon([
 # ----------------------------------------------------
 def distance(p1, p2):
     """Euclidean distance between points p1 and p2."""
+    print('p1', p1, 'p2', p2 )
     return math.hypot(p1[0] - p2[0], p1[1] - p2[1])
 
 # ----------------------------------------------------
@@ -45,6 +46,17 @@ def point_in_defense_area(agent_pos, robot_radius=ROBOT_RADIUS):
     robot_circle = Point(agent_pos).buffer(robot_radius)
     defense_area_poly = Polygon(DEFENSE_AREA_POLYGON)
     return robot_circle.intersects(defense_area_poly)
+
+def check_collisions(agent_pos, other_robot_pos):
+    """
+    Returns True if agent robot is touching another robot.
+    Touching means distance between centers <= 2*robot radius.
+    """
+    for robot_position in other_robot_pos:
+        if distance(agent_pos, robot_position) <= COLLISION_DISTANCE:
+            return True
+
+    return False
 
 def check_collision(agent_pos, other_robot_pos):
     """
@@ -84,7 +96,7 @@ def is_in_field(position):
     point = Point(position)
     return FIELD_POLYGON.contains(point)
 
-def check_stop_conditions(agent_pos, target_pos, static_robots, dynamic_robots, robot_radius=0.2, elapsed_time=0, time_limit=30):
+def check_stop_conditions(agent_pos, target_pos, static_robots, dynamic_robots, robot_radius, elapsed_time=0, time_limit=30):
     """
     Check all stop conditions and return (should_stop, message).
 
@@ -109,7 +121,7 @@ def check_stop_conditions(agent_pos, target_pos, static_robots, dynamic_robots, 
 
     all_obstacles = static_robots + dynamic_robots
     if len(all_obstacles):
-        if check_collision(agent_pos, all_obstacles):
+        if check_collisions(agent_pos, all_obstacles):
             return True, "Collision detected with another robot!\n0 POINTS"
 
     if point_in_defense_area(agent_pos):
@@ -127,4 +139,4 @@ def generate_static_robots():
 # -------------- DYNAMIC OBSTACLES -------------------
 # ----------------------------------------------------
 def generate_moving_robots():
-    pass    
+    pass
