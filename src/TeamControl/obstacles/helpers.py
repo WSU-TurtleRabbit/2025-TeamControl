@@ -4,7 +4,7 @@ from shapely.geometry import Point, Polygon
 # ----------------------------------------------------
 # ------------ Constants and Polygons ----------------
 # ----------------------------------------------------
-ROBOT_RADIUS = 85 # m
+ROBOT_RADIUS = 88.5 # m
 COLLISION_DISTANCE = ROBOT_RADIUS * 2 
 
 DEFENSE_AREA_POLYGON = [
@@ -26,7 +26,6 @@ FIELD_POLYGON = Polygon([
 # ----------------------------------------------------
 def distance(p1, p2):
     """Euclidean distance between points p1 and p2."""
-    print('p1', p1, 'p2', p2 )
     return math.hypot(p1[0] - p2[0], p1[1] - p2[1])
 
 # ----------------------------------------------------
@@ -55,15 +54,7 @@ def check_collisions(agent_pos, other_robot_pos):
     for robot_position in other_robot_pos:
         if distance(agent_pos, robot_position) <= COLLISION_DISTANCE:
             return True
-
     return False
-
-def check_collision(agent_pos, other_robot_pos):
-    """
-    Returns True if agent robot is touching another robot.
-    Touching means distance between centers <= 2*robot radius.
-    """
-    return distance(agent_pos, other_robot_pos) <= COLLISION_DISTANCE
 
 def has_reached_target(robot_pos, target_pos, threshold=5):
     """
@@ -96,7 +87,7 @@ def is_in_field(position):
     point = Point(position)
     return FIELD_POLYGON.contains(point)
 
-def check_stop_conditions(agent_pos, target_pos, static_robots, dynamic_robots, robot_radius, elapsed_time=0, time_limit=30):
+def check_stop_conditions(agent_pos, target_pos, static_robots, dynamic_robots, elapsed_time=0, time_limit=30):
     """
     Check all stop conditions and return (should_stop, message).
 
@@ -105,7 +96,6 @@ def check_stop_conditions(agent_pos, target_pos, static_robots, dynamic_robots, 
         target_pos (tuple): (x, y) target position.
         static_robots (list of tuples): List of (x, y) positions.
         dynamic_robots (list of tuples): List of (x, y) positions.
-        robot_radius (float): Radius of the robot.
         elapsed_time (float): Seconds elapsed since scenario start.
 
     Returns:
@@ -128,15 +118,3 @@ def check_stop_conditions(agent_pos, target_pos, static_robots, dynamic_robots, 
         return True, "Robot entered opponent's defense area!\n0 POINTS"
 
     return False, ""
-
-# ----------------------------------------------------
-# --------------- STATIC OBSTACLES -------------------
-# ----------------------------------------------------
-def generate_static_robots():
-    pass
-
-# ----------------------------------------------------
-# -------------- DYNAMIC OBSTACLES -------------------
-# ----------------------------------------------------
-def generate_moving_robots():
-    pass

@@ -6,16 +6,10 @@ Returns the target position for the robot to reach.
 """
 
 def get_scenario():
-    """
-    Returns:
-        target_pos: tuple (x, y) of the goal position
-        static_robots: list of positions (empty here)
-        dynamic_robots: list of positions (empty here)
-    """
     # Example target near opponent goal but outside defense area
-    target_pos = (4100, 1500)
+    main_agent = {'id': 0, 'start': (4200, -1550), 'goal': (4100, 1500), 'isYellow': True}
 
     static_robots = {} # no static obstacles in this scenario
-    dynamic_robots = []  # no dynamic obstacles either
+    dynamic_robots = {}  # no dynamic obstacles either
 
-    return target_pos, static_robots, dynamic_robots
+    return main_agent, static_robots, dynamic_robots
