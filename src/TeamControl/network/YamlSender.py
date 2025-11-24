@@ -24,7 +24,7 @@ import numpy
           
 class YamlSender(BaseSocket):
     def __init__(self):
-        file = open("src/TeamControl/utils/ipconfig.yaml", "r")
+        file = open("ipconfig.yaml", "r")
         self.robot = yaml.load(file, Loader)
         super().__init__(type=SocketType.SOCK_UDP,ip='')
 
