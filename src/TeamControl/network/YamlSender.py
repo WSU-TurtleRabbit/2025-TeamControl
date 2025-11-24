@@ -11,6 +11,7 @@ import ast
 
 import logging
 
+from pathlib import Path
 from TeamControl.network.robot_command import RobotCommand
 from TeamControl.network.baseUDP import BaseSocket,SocketType
 import yaml
@@ -19,12 +20,14 @@ try:
 except ImportError as e:
     from yaml import Loader
 
-import socket
-import numpy
+
           
 class YamlSender(BaseSocket):
     def __init__(self):
-        file = open("ipconfig.yaml", "r")
+        path = Path(__file__).resolve()
+        print(path)
+
+        file = open(path.parent / "ipconfig.yaml", "r")
         self.robot = yaml.load(file, Loader)
         super().__init__(type=SocketType.SOCK_UDP,ip='')
 
@@ -51,4 +54,3 @@ class YamlSender(BaseSocket):
         # print(robot_id,destination,port, command, " Message Sent")
 
             
-
