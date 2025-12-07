@@ -9,7 +9,7 @@ except ModuleNotFoundError as e:
     raise ModuleNotFoundError ("please install scikit-learn for running trajectory")
 
 
-def predict_trajectory(history: list, num_samples, isPostive:bool, feild_size ):
+def predict_trajectory(history: list, num_samples, isPostive:bool, field_size ):
     '''
         This function takes are input a list of ball positions and uses the last num_samples ball positions
         to fit a ball trajectory by applying a linear regression model. We then check whether this
@@ -24,13 +24,13 @@ def predict_trajectory(history: list, num_samples, isPostive:bool, feild_size ):
         output:
             the position the the golie depending on the state of the ball 
     '''
-    feild_x, feild_y =feild_size
+    field_x, field_y =field_size
             # PARAMETERS
     #GOALIE_LINE = -FIELD_LENGTH/2 + 200 #mm #On the other side of the field if we are the other team
     if isPostive == True:
-        goal_pos = feild_x/2 - 200
+        goal_pos = field_x/2 - 200
     else:
-        goal_pos = -feild_x/2 + 200
+        goal_pos = -field_x/2 + 200
 
     goal_width = 2000
     goal_line = goal_pos # the goal line is the x coordinates of the goals line 
@@ -63,7 +63,7 @@ def predict_trajectory(history: list, num_samples, isPostive:bool, feild_size ):
         model.fit(np.array(last_ball_positions_x).reshape(-1, 1), last_ball_positions_y)
 
         # Generate trajectory points
-        x_values = np.linspace(-feild_x/2, feild_x/2, 20) 
+        x_values = np.linspace(-field_x/2, field_x/2, 20) 
 
         current_ball_position_x = ball_pos_x[-1]  # Current ball position
 
