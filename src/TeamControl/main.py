@@ -4,7 +4,7 @@ from TeamControl.SSL.vision.Process import vision_worker
 from TeamControl.SSL.game_controller.fsm import run_gcfsm
 from TeamControl.world.model_manager import WorldModelManager
 from TeamControl.world.model_runner import wm_runner
-from TeamControl.utils.dummy_process import DummyReader
+# from TeamControl.utils.dummy_process import DummyReader
 from TeamControl.utils.follow_ball_dummy import run_follow_ball_dummy
 from TeamControl.robot.goalie import run_goalie
 from TeamControl.network.proto2 import *
@@ -13,7 +13,7 @@ from TeamControl.voronoi_planner.run_planner import run_planner
 # in multiprocessing this can only be a simple process
 
 def main():
-    use_sim = False
+    use_sim = True
     is_yellow = True
     
     # queues
