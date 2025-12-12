@@ -8,6 +8,8 @@ from TeamControl.SSL.vision.frame_list import FrameList
 from TeamControl.SSL.vision.field import GeometryData,FieldSize
 from TeamControl.SSL.vision.frame import Frame
 from TeamControl.SSL.game_controller.fsm import PacketType,GameState
+from TeamControl.SSL.game_controller.common import Command,Stage
+from TeamControl.SSL.game_controller.Message import TeamInfo
 
 
 from multiprocessing import Queue,Manager
@@ -37,7 +39,10 @@ class WorldModel:
         self.frame_list:FrameList[Frame] = FrameList(history=history)
         self.geometry:GeometryData = None
         self.field:FieldSize = None
-        self._version = mgr.Value('i', 0)  # int counter
+        self._version = mgr.Value('i', 0)   # int counter
+        self._state = None # current state from GC
+        self.robot_active = 6 # robots active
+        self.blf_location = None # ball left field location
     
     def update_game_data(self,game_data):
         if isinstance(game_data,Command):
@@ -57,7 +62,6 @@ class WorldModel:
         self.us_yellow = us_yellow
         self.us_positive = us_positive
         self.robot_active = 6 # robots active
-        self.game_state = GameState.HALTED
         self.blf_location = None
         # self.logger = logSaver()
     
@@ -122,7 +126,7 @@ class WorldModel:
     def get_ball_left_field_location(self):
         return self.blf_location
     
-    def get_current_state(self):
+    def get_game_state(self):
         return self._state
     
     def us_yellow(self):
@@ -164,8 +168,9 @@ class WorldModel:
                     team.remove(e)
             return team
         
-    # lower level
+    # depeciated
     def get_yellow_robots(self,isYellow, robot_id=None) -> object | list:
+        raise DeprecationWarning("use frame.get_yellow_robots() instead")
         if isYellow is True:
             if isinstance(robot_id,int):
                 return self.frame_list.latest.robots_yellow[robot_id]
@@ -175,8 +180,9 @@ class WorldModel:
                 return self.frame_list.latest.robots_blue[robot_id]
             return self.frame_list.latest.robots_blue
         
-    # higher level 
+    # Depeciated
     def get_our_robots(self, us=True, robot_id=None) -> object | list:
+        raise DeprecationWarning("use frame.get_yellow_robots() instead")
         frame = self.frame_list.latest
         # use is_yellow value as us_yellow if us== True, otherwise, the opposite i.e. not(us_yellow)
         is_yellow = self._us_yellow if us else not(self._us_yellow)
