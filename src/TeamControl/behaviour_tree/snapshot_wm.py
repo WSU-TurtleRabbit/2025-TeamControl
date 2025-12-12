@@ -4,13 +4,12 @@ import py_trees
 
 class WMSnapshot(py_trees.behaviour.Behaviour):
     # this is for connecting to the world model
-    def __init__(self, world_model,dispatcher_q, output_q=None, name="Snapshot"):
-        super().__init__(name)
+    def __init__(self, world_model,logger, name="Snapshot"):
         self.wm = world_model
-        self.d_q = dispatcher_q
-        self.out_q = output_q
-        self.bb = py_trees.blackboard.Client()
-        self.logger = LogSaver(process_name=name)
+        self.logger = logger
+        self.bb = py_trees.blackboard.Client(name=name)
+        super().__init__(name)
+
 
     def setup(self, **kwargs):
         self.bb.register_key(key="game_state", access=py_trees.common.Access.WRITE)
@@ -34,9 +33,10 @@ class WMSnapshot(py_trees.behaviour.Behaviour):
     
 # proving connection to Game Controller and Vision
 class ConnectionCheck(py_trees.behaviour.Behaviour):
-    def __init__(self, name="wm_connection_Check"):
+    def __init__(self,logger, name="wm_connection_Check"):
+        self.logger = logger
         super().__init__(name)
-        self.bb = py_trees.blackboard.Client()
+        self.bb = py_trees.blackboard.Client(name=name)
         
         
     def setup(self, **kwargs):
@@ -59,11 +59,12 @@ class ConnectionCheck(py_trees.behaviour.Behaviour):
 
         return py_trees.common.Status.SUCCESS
     
-def build_main_tree(wm, dispatcher_q,output_q):
-    root = py_trees.composites.Sequence("Root", memory=True)
+def build_main_tree(wm):
+    logger = LogSaver()
+    root = py_trees.composites.Sequence("WMRoot", memory=True)
     root.add_children([
-        WMSnapshot(wm,None),
-        ConnectionCheck(),
+        WMSnapshot(wm,logger),
+        ConnectionCheck(logger),
         # state tree ? 
         py_trees.behaviours.Success(name="hm")  # built-in leaf that returns RUNNING
     ])
@@ -77,7 +78,7 @@ if __name__ == "__main__":
     from TeamControl.world.model import WorldModel
     # example of running this behaviour standalone
     wm = WorldModel()
-    bt = build_main_tree(wm,None,None)
+    bt = build_main_tree(wm)
 
     for i in range(5):
         bt.tick_tock(1000,stop_on_terminal_state=True)
