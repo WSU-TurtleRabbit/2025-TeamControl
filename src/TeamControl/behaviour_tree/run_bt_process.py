@@ -1,6 +1,6 @@
 from multiprocessing import Process, Queue 
 from TeamControl.world.model import WorldModel
-from TeamControl.behaviour_tree.main_tree import MainTreeNode
+from TeamControl.behaviour_tree.main_tree import go_to_ball_dummy,GoToBallSequence
 import typing
 import py_trees
 
@@ -15,11 +15,11 @@ def run_bt_process(wm:WorldModel, dispatcher_q:Queue)->None:
 
     """
     # create the root of the behaviour tree
-    root = MainTreeNode(wm,dispatcher_q)
+    root = GoToBallSequence(wm,dispatcher_q)
     bt = py_trees.trees.BehaviourTree(root)
-    bt.setup()
+    bt.setup(timeout=15) # remember to add timeout
     
     while True:
         # print(wm.get_game_state())
         # print(wm.get_version())
-        bt.tick_tock(1000, stop_on_terminal_state=True)
+        bt.tick_tock(1, stop_on_terminal_state=True)

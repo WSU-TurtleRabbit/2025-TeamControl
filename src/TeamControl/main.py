@@ -10,6 +10,7 @@ from TeamControl.robot.goalie import run_goalie
 from TeamControl.network.proto2 import *
 from TeamControl.dispatcher.dispatch import run_dispatcher
 from TeamControl.voronoi_planner.run_planner import run_planner
+from TeamControl.behaviour_tree.run_bt_process import run_bt_process
 # in multiprocessing this can only be a simple process
 
 def main():
@@ -35,7 +36,7 @@ def main():
     gc_wkr = Process(target=run_gcfsm, args=(gc_q,))
     dispatch_wkr = Process(target=run_dispatcher, args=(dispatch_q,use_sim,is_yellow))
     planner_wkr = Process(target=run_planner, args=(wm,dispatch_q))
-
+    bt = Process(target=run_bt_process, args=(wm,dispatch_q,) )
     # goalie = Process(target=run_goalie,args=(dispatch_q,wm,0,is_yellow))
     # chaser = Process(target=run_follow_ball_dummy,args=(dispatch_q,wm,1,is_yellow))
     # some_other_process2 = Process(target=DummyReader,args=(wm,))'
@@ -45,8 +46,9 @@ def main():
     wmr.start()
     # goalie.start()
     dispatch_wkr.start()
+    bt.start()
     # chaser.start()
-    planner_wkr.start()
+    # planner_wkr.start()
     # some_other_process2.start()
     
     vision_wkr.join()
@@ -54,8 +56,9 @@ def main():
     wmr.join()
     # goalie.join()
     dispatch_wkr.join()
+    bt.join()
     # chaser.join()   
-    planner_wkr.join()
+    # planner_wkr.join()
     # some_other_process2.join()
 
 if __name__ == "__main__":
