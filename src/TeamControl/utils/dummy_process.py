@@ -67,7 +67,7 @@ class DummyReader():
             self.out_q.put(data)
     
     
-def run_dummy_reader(wm:WorldModel,input_queue: Queue):
+def run_dummy_reader(wm,input_queue):
     # how a process is run
     # initialize the dummy reader object
     r = DummyReader(wm,input_queue)
