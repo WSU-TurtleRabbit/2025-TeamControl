@@ -425,37 +425,54 @@ def run_striker(dispatch_q, wm: WorldModel, robot_id: int = 0, is_yellow: bool =
         # 2) MID: go to ball (dribble on)
         # -----------------------------
         elif dist_to_ball > CAPTURE_DISTANCE:
+            # MID: approach ball with dribbler ON (grSim stable)
             vx, vy, w = RobotMovement.velocity_to_target(
                 robot_pos=robot_pos_tuple,
                 target=ball_pos,
                 turning_target=goal_pos,
-                stop_threshold=0,
+                stop_threshold=40.0,   # <-- get closer before stopping
             )
+
+            vy = 0.0   # <-- CRITICAL: no strafing while dribbling
+
 
         # -----------------------------
         # 3) CLOSE: capture + push + kick
         # -----------------------------
         else:
-            # Don't strafe when holding ball in grSim
+            # CLOSE: capture ball, align, push forward, then kick
+            dribble = DRIBBLE_ON
+            kick = 0
             vy = 0.0
 
-            # If not aligned, rotate gently (no translation)
-            if abs(angle_to_goal) > ALIGN_TOL:
-                vx = 0.0
-                w = 2.0 * math.copysign(1.0, angle_to_goal)  # gentler turn
-                kick = 0
+            # ball_rel[0] > 0 means ball is in front of robot
+            ball_forward = ball_rel[0]
 
-            else:
-                # aligned: push forward to keep ball locked in dribbler
+            # 1) CAPTURE: ball not fully in dribbler yet → push gently
+            if ball_forward < 80.0:
+                vx = 0.6
                 w = 0.0
+                print("[STRIKER] CAPTURE: pushing ball into dribbler")
+
+            # 2) ALIGN: rotate gently, no translation
+            elif abs(angle_to_goal) > ALIGN_TOL:
+                vx = 0.0
+                w = 2.0 * math.copysign(1.0, angle_to_goal)
+                print("[STRIKER] ALIGN: rotating to goal")
+
+            # 3) PUSH + KICK
+            else:
                 vx = PUSH_VX
+                w = 0.0
 
                 now = time.time()
                 if dist_to_ball < KICK_DISTANCE and (now - last_kick_time) > KICK_COOLDOWN:
                     kick = KICK_ON
                     last_kick_time = now
+                    print("[STRIKER] KICK!")
                 else:
-                    kick = 0
+                    print("[STRIKER] PUSH: driving forward with ball")
+
 
         cmd = RobotCommand(
             robot_id=robot_id,
