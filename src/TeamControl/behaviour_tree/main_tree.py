@@ -275,6 +275,10 @@ class SendRobotCommand(py_trees.behaviour.Behaviour):
 
         packet = (command, self.runtime)
         print(f"[SendRobotCommand] Sending command: {command}")
-        self.dispatcher_q.put(packet)
-        return py_trees.common.Status.SUCCESS
+        if not self.dispatcher_q.full():
+            self.dispatcher_q.put(packet)
+            return py_trees.common.Status.SUCCESS
+        else:
+            print("[SendRobotCommand] Dispatcher queue is full, cannot send command")
+            return py_trees.common.Status.FAILURE
         # this is always success until we put more stuff to check here.
