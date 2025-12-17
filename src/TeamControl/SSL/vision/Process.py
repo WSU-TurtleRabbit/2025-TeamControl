@@ -38,6 +38,8 @@ class VisionProcess():
     def run(self) -> bool:
         while True:
             new_vision_data = self.recv.listen()
+            if new_vision_data is None: # idk why but this maybe none
+                continue
             if new_vision_data.HasField("detection"):
                 new_detection_data = new_vision_data.detection
                 if self.frame_number < new_detection_data.frame_number:
@@ -61,11 +63,8 @@ class VisionProcess():
             self.output_q.put(data)
         else:
             self.logs.warning("QUEUE IS FULL")
-            self.logs.warning("QUEUE IS FULL")
 
 def vision_worker(output_q:Queue,use_grSim:bool=True,vision_port=10006):
-    logs = LogSaver()
-    v = VisionProcess(output_q,logs,use_grSim,vision_port)
     logs = LogSaver()
     v = VisionProcess(output_q,logs,use_grSim,vision_port)
     v.run()
