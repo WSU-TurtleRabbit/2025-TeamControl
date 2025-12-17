@@ -199,12 +199,12 @@ class GetRobotIDPosition(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.FAILURE
     
 class RobotNotAtBall(py_trees.behaviour.Behaviour):
-    def __init__(self,threshold:float=50):
+    def __init__(self,threshold:float=300):
+        self.threshold = threshold
         name = "RobotNotAtBall"
         super().__init__(name)
     
     def setup(self):
-        self.threshold = 180  # in mm
         # read values off mutual blackboard
         self.bb = py_trees.blackboard.Client(name="RobotNotAtBall")
         self.bb.register_key(key="robot_pos", access=py_trees.common.Access.READ)
