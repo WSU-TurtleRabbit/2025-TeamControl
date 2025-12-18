@@ -1,3 +1,4 @@
+# TeamControl/robot/Movement.py
 import math
 from TeamControl.world.transform_cords import world2robot
 
@@ -30,9 +31,13 @@ class RobotMovement:
         return vx, vy, w
 
     @staticmethod
-    def behind_ball_point(ball: tuple[float, float], goal: tuple[float, float], buffer_radius: float):
+    def behind_ball_point(
+        ball: tuple[float, float],
+        goal: tuple[float, float],
+        buffer_radius: float,
+    ):
         """
-        Compute a point behind the ball on the ball→goal line.
+        Compute a point behind the ball on the ball→goal (ball→shooting_point) line.
         """
         bx, by = ball
         gx, gy = goal
@@ -48,6 +53,69 @@ class RobotMovement:
         dy /= d
 
         return (bx - dx * buffer_radius, by - dy * buffer_radius)
+
+    @staticmethod
+    def orbit_behind_ball(
+        robot_pose: tuple[float, float, float],
+        ball_pos: tuple[float, float],
+        face_target: tuple[float, float],
+        radius: float,
+        clockwise: bool,
+        kp_radial: float = 0.006,   # tune 0.003–0.012
+        v_tangent: float = 1.0,     # tune 0.6–1.4
+        max_v: float = 2.0,
+    ) -> tuple[float, float, float]:
+        """
+        Orbit around the ball while staying approximately 'radius' away,
+        and ALWAYS face 'face_target'. Returns vx, vy, w in ROBOT frame.
+
+        - radial term: pushes robot to stay on circle
+        - tangential term: moves robot around circle (CW/CCW)
+        """
+        rx, ry, _ = robot_pose
+        bx, by = ball_pos
+
+        # world vector from ball -> robot
+        dx = rx - bx
+        dy = ry - by
+        dist = math.hypot(dx, dy)
+        if dist < 1e-6:
+            dist = 1e-6
+
+        # unit radial (ball -> robot)
+        ux = dx / dist
+        uy = dy / dist
+
+        # tangential direction (rotate radial by 90°)
+        if clockwise:
+            tx, ty = uy, -ux
+        else:
+            tx, ty = -uy, ux
+
+        # radial error: positive if outside circle
+        err = dist - radius
+
+        # desired world velocity
+        vx_w = tx * v_tangent - ux * (kp_radial * err * 1000.0)
+        vy_w = ty * v_tangent - uy * (kp_radial * err * 1000.0)
+
+        # convert that world-direction into robot frame by stepping a small point
+        step_target = (rx + vx_w * 100.0, ry + vy_w * 100.0)  # 100mm step
+        step_rel = world2robot(robot_pose, step_target)
+
+        # normalize to max_v
+        norm = math.hypot(step_rel[0], step_rel[1])
+        if norm > 1e-6:
+            vx = (step_rel[0] / norm) * max_v
+            vy = (step_rel[1] / norm) * max_v
+        else:
+            vx, vy = 0.0, 0.0
+
+        # face target
+        face_rel = world2robot(robot_pose, face_target)
+        w = RobotMovement.turn_to_target(face_rel, epsilon=0.10, max_speed=2.0)
+
+        return vx, vy, w
 
     @staticmethod
     def go_To_Target(target_pos, stop_threshold=150.0, speed=2.0):
