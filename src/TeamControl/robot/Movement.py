@@ -4,8 +4,8 @@ from TeamControl.world.transform_cords import *
 from typing import Tuple, Union, List, Optional
 
 ## Commands ? 
-from TeamControl.network.robot_command import RobotCommand
-from TeamControl.network.grSim_commands import GrSimRobotCommands 
+# from TeamControl.network.robot_command import RobotCommand
+# from TeamControl.network.grSim_commands import GrSimRobotCommands 
 
 
 from typing import Tuple, Union, List, Optional
@@ -41,7 +41,7 @@ class RobotMovement():
         return vx, vy, w
     
     @staticmethod
-    def turn_to_target(target:tuple[float,float] =None, epsilon: float=0.15, speed: float = 5, robotOmega = None):
+    def turn_to_target(target:tuple[float,float] =None, epsilon: float=0.10, speed: float = 0.005, robotOmega = None):
         '''
             This function returns an agular velocity. The goal is to turn the robot
             in such a way that it is facing the ball with its kicker side.
