@@ -13,7 +13,7 @@ class dispatch():
         self.running_commands = {}
         self.announce_initialisation()
         self.y_sender = YamlSender() 
-        self.g_sender = grSimSender(is_yellow=is_yellow)
+        self.g_sender = grSimSender(ip="192.168.1.4",is_yellow=is_yellow)
 
     # Announce that the dispatcher has been created
     def announce_initialisation(self):
