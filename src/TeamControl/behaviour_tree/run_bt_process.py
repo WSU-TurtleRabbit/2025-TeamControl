@@ -1,6 +1,9 @@
 from multiprocessing import Process, Queue 
 from TeamControl.world.model import WorldModel
-from TeamControl.behaviour_tree.main_tree import go_to_ball_dummy,GoToBallSequence
+from TeamControl.behaviour_tree.main_tree import GoToBallSequence
+from TeamControl.behaviour_tree.goalie_tree import GoalieRunningSeq
+from TeamControl.utils.Logger import LogSaver
+
 import typing
 import py_trees
 
@@ -15,7 +18,11 @@ def run_bt_process(wm:WorldModel, dispatcher_q:Queue)->None:
 
     """
     # create the root of the behaviour tree
-    root = GoToBallSequence(wm,dispatcher_q)
+    logger = LogSaver()
+    # logger = None
+    isYellow = True
+    root = GoalieRunningSeq(wm,dispatcher_q,0,isYellow, logger=logger)
+    # root = GoToBallSequence(wm,dispatcher_q,logger)
     bt = py_trees.trees.BehaviourTree(root)
     bt.setup(timeout=15) # remember to add timeout
     
