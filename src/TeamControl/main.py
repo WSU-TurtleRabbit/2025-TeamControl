@@ -1,5 +1,4 @@
 from multiprocessing import Process, Queue
-
 from TeamControl.SSL.vision.Process import vision_worker
 from TeamControl.SSL.game_controller.fsm import run_gcfsm
 from TeamControl.world.model_manager import WorldModelManager
@@ -8,7 +7,8 @@ from TeamControl.robot.goalie import run_goalie
 from TeamControl.network.proto2 import *
 from TeamControl.dispatcher.dispatch import run_dispatcher
 from TeamControl.voronoi_planner.run_planner import run_planner
-from TeamControl.robot.striker import run_go_behind_ball
+from TeamControl.robot.striker import run_simple_striker
+
 
 
 def main():
@@ -32,7 +32,7 @@ def main():
     gc_wkr = Process(target=run_gcfsm, args=(gc_q,))
     dispatch_wkr = Process(target=run_dispatcher, args=(dispatch_q, use_sim, is_yellow))
     planner_wkr = Process(target=run_planner, args=(wm, dispatch_q))
-    striker_wkr = Process(target=run_go_behind_ball, args=(dispatch_q, wm, 0, is_yellow))
+    striker_wkr = Process(target=run_simple_striker, args=(dispatch_q, wm, 0, is_yellow))
 
     vision_wkr.start()
     gc_wkr.start()

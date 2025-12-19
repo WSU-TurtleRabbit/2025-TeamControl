@@ -37,16 +37,16 @@ class RobotMovement:
         bx, by = ball
         gx, gy = goal
 
-        dx = gx - bx
-        dy = gy - by
-        d = math.hypot(dx, dy)
+        dx = gx - bx #x-component of ball→goal
+        dy = gy - by #y-component of ball→goal
+        d = math.hypot(dx, dy) #length of that vector
 
         if d == 0.0:
             return (bx, by)
 
-        dx /= d
-        dy /= d
-        return (bx - dx * buffer_radius, by - dy * buffer_radius)
+        dx /= d #normalize
+        dy /= d #normalize
+        return (bx - dx * buffer_radius, by - dy * buffer_radius) #by - dy * R = move backward
 
     @staticmethod
     def go_To_Target(target_pos, stop_threshold=150.0, speed=1.2):
@@ -67,7 +67,7 @@ class RobotMovement:
         )
 
     @staticmethod
-    def turn_to_target(target, epsilon=0.12, max_speed=2.0):
+    def turn_to_target(target, epsilon=0.10, max_speed=2.0):
         """
         Rotate robot to face target (robot frame).
         """
