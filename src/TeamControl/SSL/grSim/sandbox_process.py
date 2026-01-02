@@ -2,32 +2,63 @@ from TeamControl.network.ssl_sockets import grSimSender
 from TeamControl.network.robot_command import RobotCommand 
 from TeamControl.robot.Movement import RobotMovement
 
-def sandbox_process(wm):
-    sim_ip = "127.0.0.1"
-    cmd_listen_port = 20010
-    is_yellow = True
-    robot_id = 1
-    sender = grSimSender(ip=sim_ip,port=cmd_listen_port,is_yellow=is_yellow)
-    
-    version = 0 # vision version
-    robot_pos = 0,0,0
-    ball = 0,0
-    while True:
-        # This is running
+class GrSimSandbox:
+    def __init__(self,wm):
+        self.wm = wm
+        self.sim_ip = "127.0.0.1"
+        self.cmd_listen_port = 20010
+        self.is_yellow = True
+        self.robot_id = 1
+        self.sender = grSimSender(ip=self.sim_ip,port=self.cmd_listen_port,is_yellow=self.is_yellow)
+        self.version = 0 # vision version
+        self.ball_last_known = (0,0)
+
+    def running(self):
+        vx, vy, w= 0, 0 , 0
+        while True:
+            # check version update 
+            has_update = self.get_update()
+            # This is running
+            
+            if has_update is True:
+                robot_pos, ball = self.get_objects()
+            
+                # calculate velocity to target : ball
+                vx, vy, w= RobotMovement.velocity_to_target(robot_pos=robot_pos, target=ball)
+            
+            # send the command after
+            cmd = RobotCommand(self.robot_id, vx, vy, w, 0, 0)
+            self.sender.send_command(cmd)
+            
+    def get_update(self):
         # get_update
-        if version < wm.get_version():
-            version = wm.get_version()
-            try:
-                robot_obj = wm.get_yellow_robots(isYellow=is_yellow,robot_id=robot_id)
-                robots = wm.get_yellow_robots(isYellow=is_yellow,robot_id=None)
-                robot_pos = robot_obj.position
-                robot_obstacle = robot_obj.obstacle
-                ball = wm.get_latest_frame().ball.position
-            except Exception :
-                robot_pos = 0,0,0
-                ball = 0,0
-                
-        vx, vy, w= RobotMovement.velocity_to_target(robot_pos=robot_pos, target=ball)
-        
-        cmd = RobotCommand(1, vx, vy, w, 0, 0)
-        sender.send_command(cmd)
+        if self.version < self.wm.get_version():
+            self.version = self.wm.get_version()
+            self.frame = self.wm.get_latest_frame()
+            self.frames =self.wm.get_last_n_frames(10) # you can pick how many frames to get
+            if self.frame != None:
+                # verified that you have a frame
+                return True
+        return False
+    
+    def get_objects(self):
+        # getting a robot object 
+        robot_obj = self.frame.get_yellow_robots(isYellow=self.is_yellow,robot_id=self.robot_id) 
+        # getting a team of robots that is yellow
+        robots = self.frame.get_yellow_robots(isYellow=self.is_yellow,robot_id=None)
+        # accessing the specific robot position
+        robot_pos = robot_obj.position
+        # use this ball position if the ball position is not None otherwise use the last known position
+        ball = self.frame.ball.position if self.frame.ball.position is not None else self.ball_last_known
+        if self.frame.ball.position is not None:
+            # update this
+            self.ball_last_known = self.frame.ball.position
+            
+        # select what you want to return    
+        return robot_pos, ball
+    
+
+## running as a multiprocessing process
+def run_grsim_sandbox_process(wm):
+    sandbox = GrSimSandbox(wm)
+    sandbox.running()

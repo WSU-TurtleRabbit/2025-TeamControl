@@ -3,9 +3,8 @@ from TeamControl.SSL.vision.Process import vision_worker
 # from TeamControl.SSL.game_controller.fsm import run_gcfsm
 from TeamControl.world.model_manager import WorldModelManager
 from TeamControl.world.model_runner import wm_runner
-from TeamControl.utils.dummy_process import DummyReader
-from TeamControl.SSL.grSim.sandbox_process import sandbox_process
-from TeamControl.behaviour_tree.run_bt_process import run_bt_process
+# from TeamControl.utils.dummy_process import DummyReader
+from TeamControl.SSL.grSim.sandbox_process import run_grsim_sandbox_process
 
 # in multiprocessing this can only be a simple process
 
@@ -30,6 +29,7 @@ def main():
     bt = Process(target=run_bt_process, args=(wm,dispatcher_q,) )
     
     
+    sandbox = Process(target=run_grsim_sandbox_process, args=(wm,) )
     vision_wkr.start()
     wmr.start()
     # sandbox.start()

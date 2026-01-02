@@ -86,7 +86,7 @@ class PathPlanner():
         # the start positions of our robots
 
         # start_pos = [x.xy_pos for x in self.frame.get_yellow_robots(isYellow=self.isYellow)]
-        start_pos = [self.frame.get_yellow_robots(isYellow=self.isYellow,robot_id=robot_id).xy_pos]
+        path_obs = [self.frame.get_yellow_robots(isYellow=self.isYellow,robot_id=robot_id).obstacle]
         # obstacles
         our_robot_obs = [r.obstacle for r in self.frame.get_all_in_team_except(isYellow=self.isYellow, exclude=[])]
         enemy_robot_obs = [r.obstacle for r in self.frame.get_all_in_team_except(isYellow=not self.isYellow, exclude=[])]
@@ -103,7 +103,7 @@ class PathPlanner():
         waypoints= self.p.generate_waypoints(our_robot_obs,goals,self.d0)
         # print(f"{waypoints=}")
         simplified_paths = []
-        for i, (start, wp, goal) in enumerate(zip(our_robot_obs, waypoints, goals)):
+        for i, (start, wp, goal) in enumerate(zip(path_obs, waypoints, goals)):
             full_path = [start.centre()] + wp
             simple = self.p.simplify(full_path, self.CLEARANCE, [start.unum()])
             goal_is_safe = all(

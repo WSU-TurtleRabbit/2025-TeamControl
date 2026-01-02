@@ -62,7 +62,7 @@ class RobotMovement():
         return omega 
     
     @staticmethod
-    def go_To_Target(target_pos: tuple[float,float], speed: int=1, stop_threshold:float=150):
+    def go_To_Target(target_pos: tuple[float,float], speed: int=0.08, stop_threshold:float=150):
         """go To Target Position (in respect to Robot)
         if the distance is further away from stop_threshold,
         it will go to target position with calculated speed.
