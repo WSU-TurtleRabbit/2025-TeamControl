@@ -264,3 +264,5 @@ class GeometryData():
             calibration=[CameraCalibration.from_proto(cc) for cc in gd.calib],
             models=GeometryModels.from_proto(getattr(gd,"models",None))
         )
+        
+    ## to do : need a merge function for grSim ? 

@@ -1,21 +1,16 @@
-import math
-import numpy as np
 from TeamControl.world.transform_cords import *
 from typing import Tuple, Union, List, Optional
 
-## Commands ? 
-# from TeamControl.network.robot_command import RobotCommand
-# from TeamControl.network.grSim_commands import GrSimRobotCommands 
-
-
-from typing import Tuple, Union, List, Optional
+import numpy as np
+import math
 
 class RobotMovement():
     
     @classmethod
     def velocity_to_target(cls,robot_pos: tuple[float, float, float],
                            target: tuple[float,float], 
-                           turning_target:tuple[float, float] = None 
+                           turning_target:tuple[float, float] = None,
+                           speed: float = 0.01
                            , stop_threshold = 150) -> tuple[float, float, float]: 
         '''
         Gets the velocity required for the robot go to position and trun to target
@@ -25,7 +20,7 @@ class RobotMovement():
             pass
         
         transTarget = world2robot(robot_pos, target)
-        vx, vy = cls.go_To_Target(transTarget, stop_threshold = stop_threshold)
+        vx, vy = cls.go_To_Target(transTarget, stop_threshold = stop_threshold,speed=speed)
         if turning_target is None:
             w = 0
         else:
@@ -41,7 +36,7 @@ class RobotMovement():
         return vx, vy, w
     
     @staticmethod
-    def turn_to_target(target:tuple[float,float] =None, epsilon: float=0.10, speed: float = 0.005, robotOmega = None):
+    def turn_to_target(target:tuple[float,float] =None, epsilon: float=0.15, speed: float = 0.005, robotOmega = None):
         '''
             This function returns an agular velocity. The goal is to turn the robot
             in such a way that it is facing the ball with its kicker side.

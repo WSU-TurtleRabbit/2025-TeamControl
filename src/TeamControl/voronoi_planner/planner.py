@@ -197,6 +197,7 @@ class VoronoiPlanner:
         return waypoints
 
     def plot(self, starts, goals, waypoints):
+        filename = "path"
         fig, ax = plt.subplots(figsize=(10, 10))
         if self.voronoi_diagram:
             voronoi_plot_2d(self.voronoi_diagram, ax=ax, show_vertices=False, show_points=False)
@@ -227,7 +228,11 @@ class VoronoiPlanner:
         plt.xlabel("X")
         plt.ylabel("Y")
         plt.grid(True)
-        plt.show()
+        # plt.show()
+        
+        # png 
+        plt.savefig(filename, dpi=50, bbox_inches='tight')  
+        plt.close(fig)
 
 
 def generate_points(N, dmin, xrange, yrange, existing=[]):

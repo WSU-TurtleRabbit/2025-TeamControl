@@ -14,8 +14,25 @@ log.setLevel(logging.DEBUG)
 
 from TeamControl.network.baseUDP import BaseSocket, SocketType
 
-          
 class Sender(BaseSocket):
+    def __init__(self, type=SocketType.SOCK_UDP, binding=False) -> None:
+        device_ip = None 
+        device_port = self._generate_port()
+        super().__init__(ip=device_ip,port=device_port,type=type,binding=binding)
+    
+    def send(self, msg, ip:str, port:int):
+        # update address as provided, otherwise uses default
+        try:
+            addr = tuple((str(ip),int(port))) 
+            if not isinstance(msg,bytes):
+                msg = msg.encode()
+        except Exception as e:
+            raise Exception(type(e), " check address and msg ", e)
+        
+        self.sock.sendto(msg,addr)
+    
+    
+class LockedSender(BaseSocket):
     def __init__(self, ip: str='127.0.0.1', port: int=0, type=SocketType.SOCK_UDP, binding=False) -> None:
         device_ip = None 
         device_port = self._generate_port()
@@ -67,7 +84,7 @@ class Sender(BaseSocket):
     
     
 
-class Broadcaster(Sender):
+class Broadcaster(LockedSender):
     def __init__(self, broadcasting_port: int = 12342) -> None:
         """
         UDP Broadcast sending channel

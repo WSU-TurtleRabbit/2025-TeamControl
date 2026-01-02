@@ -1,11 +1,36 @@
 
-"""
-The following is obtained from gc_referee_message.proto
-"""
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum,auto
 
 import numpy as np
 
+# these are Enums defined by us
+
+class PacketType(Enum): # for message sending onto gc_queue
+    ROBOTS_ACTIVE = auto()
+    NEW_STATE = auto()
+    SWITCH_TEAM = auto()
+    BLF_LOCATION = auto()
+
+class GameState(Enum):
+    HALTED = auto()
+    STOPPED = auto()
+    RUNNING = auto()
+    PREPARE_KICKOFF = auto()
+
+    FREE_KICK = auto()
+    BALL_PLACEMENT = auto()
+    KICKOFF = auto()
+    
+    HALF_TIME = auto()
+    # TIME_OUT = auto()
+    
+    PENALTY_SHOOT = auto()
+    PENALTY_DEFEND = auto()
+    
+
+"""
+The following is obtained from gc_referee_message.proto
+"""
 class Command(Enum):
     HALT = 0
     STOP = 1
