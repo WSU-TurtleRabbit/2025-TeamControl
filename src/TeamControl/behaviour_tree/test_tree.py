@@ -141,14 +141,14 @@ class AlreadyLookingAtTarget(py_trees.behaviour.Behaviour):
         self.bb.register_key(key="new_dir",access=py_trees.common.Access.READ)
         self.bb.register_key(key="d_theta",access=py_trees.common.Access.WRITE)
         self.bb.register_key(key="w",access=py_trees.common.Access.WRITE)
-
+    
+    def wrap_to_pi(self,a) -> float:
+        return (a + np.pi) % (2*np.pi) - np.pi
+    
     def update(self) -> py_trees.common.Status:
         # check if robot is at ball
         trans_pos = self.bb.new_dir
-        new_orientation = np.arctan2(trans_pos[1],trans_pos[0])
-        
-        if new_orientation > np.pi:
-            new_orientation = -(2*np.pi - new_orientation)
+        new_orientation = self.wrap_to_pi(np.arctan2(trans_pos[1],trans_pos[0]))
         
         self.bb.d_theta = new_orientation 
         print(self.bb.d_theta,new_orientation,self.bb.robot_pos[2])
