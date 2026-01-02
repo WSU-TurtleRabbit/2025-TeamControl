@@ -9,7 +9,7 @@ from TeamControl.dispatcher.dispatch import Dispatcher
 from TeamControl.utils.yaml_config import Config
 
 from TeamControl.voronoi_planner.run_planner import run_planner
-# from TeamControl.behaviour_tree.run_bt_process import run_bt_process
+from TeamControl.behaviour_tree.run_bt_process import run_bt_process
 # from TeamControl.utils.dummy_process import DummyReader
 from TeamControl.utils.follow_ball_dummy import run_follow_ball_dummy
 from TeamControl.robot.goalie import run_goalie
@@ -53,7 +53,7 @@ def main():
     wmr = Process(target=WMWorker.run_worker, args=(is_running,logger,wm,vision_q,gc_q),)
     vision_wkr = Process(target=VisionProcess.run_worker, args=(is_running,logger,vision_q,preset.use_grSim_vision,preset.vision[1]),)
     gc_wkr = Process(target=GCfsm.run_worker, args=(is_running, logger, gc_q, preset.us_yellow, preset.us_positive ),)
-    bt = Process(target=run_bt_process, args=(wm,dispatch_q,) )
+    bt = Process(target=run_bt_process, args=(is_running,wm,dispatch_q,) )
 
     dispatch_wkr = Process(target=Dispatcher.run_worker, args=(is_running,logger,dispatch_q,preset,),)
     # planner_wkr = Process(target=run_planner, args=(wm,dispatch_q))
