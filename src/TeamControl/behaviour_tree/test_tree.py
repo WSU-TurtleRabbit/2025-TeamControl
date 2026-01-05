@@ -182,9 +182,9 @@ class CalculateAngularVelocity(py_trees.behaviour.Behaviour):
         # calculate w        
         d_theta = self.bb.d_theta 
         if abs(d_theta) > self.epsilon*2:
-            self.bb.w = d_theta * self.speed*5
+            self.bb.w = d_theta/self.epsilon * self.speed*5
         else:
-            self.bb.w = d_theta * self.speed *1       
+            self.bb.w = d_theta/self.epsilon * self.speed *1       
         return py_trees.common.Status.SUCCESS
         
  
