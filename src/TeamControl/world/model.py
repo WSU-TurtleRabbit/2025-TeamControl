@@ -101,12 +101,6 @@ class WorldModel:
         # when we have a new incoming state, it updates this
         self._state = new_state 
 
-    def update_robots_active(self, new_active):
-        self.robot_active = new_active
-
-    def update_state(self, new_state):
-        self._state = new_state
-
     def update_team(self, us_yellow: bool, us_positive: bool):
         self._us_yellow = us_yellow
         self._us_positive = us_positive
