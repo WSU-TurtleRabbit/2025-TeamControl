@@ -164,9 +164,10 @@ class AlreadyLookingAtTarget(py_trees.behaviour.Behaviour):
 
 
 class CalculateAngularVelocity(py_trees.behaviour.Behaviour):
-    def __init__(self,speed:float,epsilon: float=0.15):
+    def __init__(self,speed:float,epsilon: float=0.15,d_time:float = 1):
         self.epsilon = epsilon
         self.speed = speed
+        self.d_time = d_time
         name = "CalculateAngularVelocity"
         self.bb = py_trees.blackboard.Client(name=name)
         super().__init__(name)
@@ -180,11 +181,12 @@ class CalculateAngularVelocity(py_trees.behaviour.Behaviour):
 
     def update(self) -> py_trees.common.Status:
         # calculate w        
+        d_time = self.d_time
         d_theta = self.bb.d_theta 
         if abs(d_theta) > self.epsilon*2:
-            self.bb.w = d_theta/self.epsilon * self.speed*5
+            self.bb.w = d_theta/d_time * self.speed*5
         else:
-            self.bb.w = d_theta/self.epsilon * self.speed *1       
+            self.bb.w = d_theta/d_time * self.speed *1       
         return py_trees.common.Status.SUCCESS
         
  
@@ -236,6 +238,7 @@ class AlreadyAtTarget(py_trees.behaviour.Behaviour):
             self.logger = logger
         # read values off mutual blackboard
         self.bb.register_key(key="trans_pos",access=py_trees.common.Access.READ)
+        self.bb.register_key(key="target_dist",access=py_trees.common.Access.WRITE)
         self.bb.register_key(key="vx",access=py_trees.common.Access.WRITE)
         self.bb.register_key(key="vy",access=py_trees.common.Access.WRITE)
     
@@ -243,6 +246,7 @@ class AlreadyAtTarget(py_trees.behaviour.Behaviour):
         # check if robot is at ball
         trans_pos = self.bb.trans_pos
         distance = math.sqrt(trans_pos[0]**2 + trans_pos[1]**2)
+        self.bb.target_dist = distance
         
         if distance <= self.threshold: 
             self.logger.info("Already At Target")
@@ -266,13 +270,14 @@ class CalculateLinearVelocity(py_trees.behaviour.Behaviour):
         # read values off mutual blackboard
         # values for calculating values
         self.bb.register_key(key="trans_pos", access=py_trees.common.Access.READ)
+        self.bb.register_key(key="target_dist", access=py_trees.common.Access.READ)
         self.bb.register_key(key="vx", access=py_trees.common.Access.WRITE)
         self.bb.register_key(key="vy", access=py_trees.common.Access.WRITE)
         
     
     def update(self) -> py_trees.common.Status:
         trans_pos = self.bb.trans_pos
-        distance = math.sqrt(trans_pos[0]**2 + trans_pos[1]**2)
+        distance = self.bb.target_dist
 
         # print(distance)
         if distance > self.threshold:
