@@ -1,17 +1,18 @@
-from TeamControl.network.proto2 import ssl_vision_wrapper_pb2,ssl_vision_detection_tracked_pb2,ssl_gc_referee_message_pb2
-from TeamControl.network.receiver import Multicast
-from TeamControl.network.sender import Sender
-from TeamControl.network.grSim_commands import GrSimRobotCommands
-
+from TeamControl.network.proto2 import ssl_vision_wrapper_pb2,ssl_vision_detection_tracked_pb2,ssl_gc_referee_message_pb2,grSim_Packet_pb2
+from TeamControl.network.receiver import SSL_Multicast
+from TeamControl.network.sender import LockedSender
+from TeamControl.network.robot_command import RobotCommand
+from TeamControl.network.grSimPacketFactory import grSimPacketFactory
+from multiprocessing import Event
 
 # Classes of Vision Wolrd Receivers
-class Vision(Multicast):
+class Vision(SSL_Multicast):
     """ Vision SSL multicast receiver
         world vision SSL  mulitcast listener
     Args:
         Multicast (Class): base Class
     """
-    def __init__(self,port : int=10006) -> None:
+    def __init__(self,is_running:Event,port : int=10006) -> None:
         """
         Initialising Multicast Vision SSL Socket
 
@@ -22,86 +23,108 @@ class Vision(Multicast):
         decoder :object = ssl_vision_wrapper_pb2.SSL_WrapperPacket()
         group : str = "224.5.23.2"
         buffer_size : int = 6000
-        super().__init__(port=port,group=group,decoder=decoder,buffer_size=buffer_size)
+        super().__init__(is_running=is_running,port=port,group=group,decoder=decoder,buffer_size=buffer_size)
    
     def listen(self) -> bool:
-        vision_data,addr = super().listen()
-        return vision_data
+        return super().listen()
             
-class VisionTracker(Multicast):
+class VisionTracker(SSL_Multicast):
     """
-    For Tracked Packets
-
+    For Tracked Packets 
+    Default :  224.5.23.2:10010
     Args:
         Multicast: the recv socket
     """
-    def __init__(self, port, group, decoder, buffer_size = 6000, timeout = 1):
-        port = 1234
+    def __init__(self, is_running:Event,port, group, decoder, buffer_size = 6000, timeout = 1):
+        port = 10007
         decoder = ssl_vision_detection_tracked_pb2.TrackerWrapperPacket()
         group : str = "224.5.23.2"
         buffer_size : int = 6000
         super().__init__(port, group, decoder, buffer_size, timeout)
 
 
-class GameControl(Multicast):
-    def __init__(self) -> None:
+class GameControl(SSL_Multicast):
+    def __init__(self,is_running:Event) -> None:
         group : str = '224.5.23.1'
         port : int = 10003
         decoder = ssl_gc_referee_message_pb2.Referee()
         buffer_size : int = 6000
         timeout : float = 5.0
-        super().__init__(port=port, group=group, decoder=decoder, buffer_size=buffer_size,timeout=timeout)
+        super().__init__(is_running=is_running,port=port, group=group, decoder=decoder, buffer_size=buffer_size,timeout=timeout)
         
     def listen(self) -> ssl_gc_referee_message_pb2.Referee:
         # see Multicast listen(), decode()
-        data, addr = super().listen()
-        return data
-    
+        return super().listen()
 
 class grSimVision(Vision):
-    def __init__(self, port : int=10020) -> None:
+    def __init__(self, is_running:Event, port : int=10020) -> None:
         """
         Initialising Multicast GR Sim World Socket
         
         Args:
+            is_running(Event): Multiprocessing Event to manage operation
             ip (str, optional): ip of the grSim device. Defaults to None -> local.
             port (int, optional): port of grSim Vision. Defaults to 10020.
         """
-        super().__init__(port=port)
+        super().__init__(is_running, port=port)
         
 ### Simulation Control ### 
 
-class grSimSender(Sender):
-    def __init__(self, ip: str = "127.0.0.1", port : int = 20010,is_yellow = True) -> None: #please check and verify this port
-        self.is_yellow = is_yellow 
-        self.GSC = GrSimRobotCommands(isYellow=is_yellow)
+class grSimSender(LockedSender):
+    def __init__(self, ip: str = "127.0.0.1", port : int = 20010) -> None: #please check and verify this port
         super().__init__(ip=ip,port=port)
     
-    def new_raw_command(self,robot_id,vx=0.0,vy=0.0,w=0.0,k=0,d=0,us=True):
-        return GSC.new_command(robot_id=robot_id,vx=vx,vy=vy,w=w,k=k,d=d,us=us)
-    
-    def send(self,msg) -> None:
-        """
-        send GrSimRobotCommands or bytes to grSim
-        """
-        if not isinstance(msg,bytes):
-            try:
-                msg = self.GSC.encode(msg)
-            except Exception as e:
-                raise(e, "Error with GRSIM message packing")
-        self.sock.sendto(msg,self.destination)
-    
-    def send_command(self, robot_command,us=True) -> None:
-        """send_command
+    def send_robot_command(self,robot_command:RobotCommand,override_id=None):
+        if not isinstance(robot_command,RobotCommand):
+            raise TypeError("Expecting RobotCommand Object, got ", type(robot_command))
+        # creates a packet
+        cmd_dict = robot_command.to_dict()
+
+        if override_id is not None:
+            cmd_dict["robot_id"] = int(override_id)
+            
+        packet = grSimPacketFactory.robot_command(**cmd_dict)
+        # send this packet
+        self.send_packet(packet)
         
-        sending Command over grsim command sender port
-        
-        converting RobotCommands into grSim commands
+    
+    def send_packet(self,packet:grSim_Packet_pb2) -> None:
         """
-        packet = self.GSC.convert(robot_command=robot_command,us=us)
-        encoded_msg = self.GSC.encode(packet)
+        send RobotCommand or bytes to grSim
+        *see grSimPacketFactory for how to generate packet
+        """
+
+        if not isinstance(packet,grSim_Packet_pb2.grSim_Packet):
+            raise TypeError("Only accept grSim_Packet_pb2 Object")
+        
+        # encodes the packet
+        encoded_msg = self.encode(packet)
+        # feedback statement ? 
+        # print(f"{packet} \n has been sent to {self.destination}.")
+        # sends the packet
         self.send(encoded_msg)
+
+    
+    def send(self,byte_string: bytearray)->None:
+        if not isinstance(byte_string,bytes):
+            raise TypeError("expected byte-like object, use send_packet() or send_robot_command instead ?")
+        self.sock.sendto(byte_string,self.destination)
         
+    
+    @staticmethod
+    def encode(packet) -> bytes:
+        bytes_packet = packet.SerializeToString()
+        return bytes_packet
+    
+
+
+
+if __name__ == "__main__":
+    sender = grSimSender()
+    cmd = RobotCommand(1)
+    sender.send_robot_command(cmd)
+    
+    
 
 
 
@@ -158,9 +181,3 @@ class grSimSender(Sender):
 #     def send(self, packet) -> None:
 #         return super().send(packet)
   
-
-
-# if __name__ == "__main__":
-#     recv = GameControl()
-#     data,addr = recv.listen()
-#     print(f"{data} \n received from {addr}.")

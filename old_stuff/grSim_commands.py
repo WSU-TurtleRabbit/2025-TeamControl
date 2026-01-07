@@ -1,3 +1,6 @@
+### DEPRECIATED ##
+
+
 # this is to get us ready to turn the commands to grSim RobotCommands
 from TeamControl.network.robot_command import RobotCommand
 # from TeamControl.robot.robot_commands import RobotCommands # do not use

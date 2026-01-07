@@ -7,7 +7,8 @@ from TeamControl.network.sender import Sender
 from TeamControl.network.robot_command import RobotCommand
 
 class Remote_robot():
-    def __init__(self, robot_id=2, isYellow=False):
+    def __init__(self, robot_id=2, isYellow=False, robot_pov=True):
+        self.robot_pov = robot_pov
         self.robot_id = robot_id
         self.us_yellow = isYellow
 
@@ -18,7 +19,7 @@ class Remote_robot():
 
 
     def run_remote_control(self):
-        speed = 0.1
+        speed = 50
         # vx,vy,vw,k,d = 0,0,0,0,0
         # dribbler_on = False
         pygame.init()
@@ -33,21 +34,33 @@ class Remote_robot():
                     running = False
                     
             if keys[pygame.K_w] or keys[pygame.K_UP]:
-                vx += +speed
+                if self.robot_pov is True:
+                    vy = + speed
+                else:
+                    vx += +speed
                 
             if keys[pygame.K_s] or keys[pygame.K_DOWN]:
-                vx += -speed    
+                if self.robot_pov is True:
+                    vy = - speed
+                else:
+                    vx += -speed    
                 
             if keys[pygame.K_a] or keys[pygame.K_LEFT]:
-                if self.us_yellow is True:
-                    vy += +speed    
-                elif self.us_yellow is False:
-                    vy += -speed
+                if self.robot_pov is True:
+                    vx += -speed
+                else:
+                    if self.us_yellow is True:
+                        vy += +speed    
+                    elif self.us_yellow is False:
+                        vy += -speed
             if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-                if self.us_yellow is True:
-                    vy += -speed    
-                elif self.us_yellow is False:
-                    vy += +speed
+                if self.robot_pov is True:
+                    vx += +speed
+                else:
+                    if self.us_yellow is True:
+                        vy += -speed    
+                    elif self.us_yellow is False:
+                        vy += +speed
                 
             if keys[pygame.K_q] or keys[pygame.K_PAGEUP]:
                 vw += +speed/(2*math.pi)

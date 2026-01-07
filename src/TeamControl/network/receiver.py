@@ -9,6 +9,7 @@ import struct
 import time
 
 from TeamControl.network.baseUDP import BaseSocket,SocketType
+from multiprocessing import Event
 
 #logging
 import logging
@@ -16,8 +17,9 @@ log = logging.getLogger()
 log.setLevel(logging.INFO)
 
 class Receiver(BaseSocket):
-    def __init__(self, type=SocketType.SOCK_UDP, ip = None, port = 0, buffer_size = 1024,timeout=1):
+    def __init__(self, is_running:Event, type=SocketType.SOCK_UDP, ip = None, port = 0, buffer_size = 1024,timeout=1):
         super().__init__(type=type, ip=ip, port=port, binding=True) #UDP must Bind
+        self.is_running:Event = is_running
         self.buffer_size = buffer_size
         self.timeout=timeout
         self.sock.settimeout(timeout)
@@ -26,30 +28,49 @@ class Receiver(BaseSocket):
         return f"{self.__class__.__name__} - recv @ {self.addr}, available = {self.is_ready}, {self.timeout=}"
     
     
-    def listen(self,duration:float = 0.) -> tuple[str, tuple[str, int]] | None:
+    def listen(self) -> tuple[str, tuple[str, int]] | tuple[None,None]:
         """
         Listens for incoming UDP messages. Returns the message and sender address.
         """
         assert self.is_ready, "Socket is not initialized. try another port ?"
-        active = True
-        result = '', 0
-        if duration !=0 : 
-            endTime = time.time() + duration
-        else:
-            endTime = time.time()     
-        while active:
+        # default
+        result = None,None
+        while self.is_running.is_set():
             try:
+                # listen
                 message, addr = self.sock.recvfrom(self.buffer_size)
-                self.last_message = self._decode(message)
-                self.last_addr = addr
-                result = self.last_message, self.last_addr
+                # decode
+                decoded_message = self._decode(message)
+                # update variable
+                result = decoded_message, addr
+                return result 
+            except socket.timeout:
+                # print("timeout")
+                continue
+            except KeyboardInterrupt:
+                continue
+        
+        print(f"{self.__class__.__name__} has stopped listening")
+        return result
+    
+    def listen_for(duration:int) -> tuple[str, tuple[str, int]] | tuple[None,None] :
+        result = None,None
+        end_time = time.time() + duration
+        while time.time() < end_time:
+            try:
+                # listen
+                message, addr = self.sock.recvfrom(self.buffer_size)
+                # decode
+                last_message = self._decode(message)
+                # update variable
+                result = last_message, self.last_addr
                 active = False
             except socket.timeout:
                 # print("timeout")
                 continue
-            
-            if time.time() >= endTime:
-                return result
+            except KeyboardInterrupt:
+                break
+        return result
                 
 
     def _decode(self,data:bytes):
@@ -69,26 +90,28 @@ class Broadcast(Receiver):
     
 
 # Multicast Receiver
-class Multicast(Receiver):
-    def __init__(self,port: int, group:str, decoder:object, buffer_size: int = 6000,timeout:int=0.5) -> None:
+class SSL_Multicast(Receiver):
+    def __init__(self,is_running:Event,port: int, group:str, decoder:object, buffer_size: int = 6000,timeout:float=0.5) -> None:
         """
         Initialising Multicast socket
 
         Args:
+            is_running (Event): multiprocessing event that controls operation if it is running
+            port (int): port of multicast connection. 
+            group (str): Mulitcast group. Defaults to "224.5.0.0" -> nothing.
             decoder (object): SSL Protobuf file and descriptor to decode data
-            ip (str, optional): ip of Device trying to connect. Defaults to None -> self obtain device ip.
-                                if wanted to connect externally, please type in ip string 
-            port (int, optional): port of connection. Defaults to 0 -> auto generated.
-            group (str, optional): Mulitcast group. Defaults to "224.5.0.0" -> nothing.
             buffer_size (int, optional): buffer_size for listening. Defaults to 6000. 
+            timeout (float, optional): 
 
         Raises:
             Exception: Needed decoder
         """
-        super().__init__(ip="",port=port,type=SocketType.SOCK_MULTICAST_UDP,buffer_size=buffer_size,timeout=timeout)
-        
+        super().__init__(is_running=is_running,ip="",port=port,type=SocketType.SOCK_MULTICAST_UDP,buffer_size=buffer_size,timeout=timeout)
+
         self.group : str = group
         self.decoder:object = decoder
+        if self.decoder is None:
+            raise AttributeError ("MISSING DECODER")
         self._add_group()
             
     
@@ -99,8 +122,10 @@ class Multicast(Receiver):
         self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         self.is_ready = True
         
-    def listen(self) -> str | None: # modified to have decoded data to be boolean
-        return super().listen()
+    def listen(self) -> object | bytearray:
+        # set to only return the decoded data
+        decoded_info,_ = super().listen()
+        return decoded_info
     
     def _decode(self,data:bytes) -> bool:
         """
@@ -113,15 +138,18 @@ class Multicast(Receiver):
             str: decoded data
         """
         # Decode with Protobuf 
-        # try:
-        decoded_data:str= self.decoder.FromString(data) 
-        return decoded_data
+        try:
+            decoded_data:str= self.decoder.FromString(data) 
+            return decoded_data
+        except Exception as e:
+            print(f"message cannot be decoded by {self.decoder=} : {data}")
     
 
 if __name__ == "__main__":
-    recv = Receiver(port = 50514)
+    is_running = Event()
+    recv = Receiver(is_running,port = 50514)
     b_recv = Broadcast()
-    m_recv = Multicast(10006, "224.24.5.3", '')
+    m_recv = SSL_Multicast(is_running,10006, "224.24.5.3", '')
     while True:
         print("receiver is listening")
         msg,_ = recv.listen()

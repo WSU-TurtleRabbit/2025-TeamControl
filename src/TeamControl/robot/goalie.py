@@ -8,11 +8,15 @@ from TeamControl.world.transform_cords import world2robot
 # typings
 from TeamControl.world.model import WorldModel
 from TeamControl.SSL.vision.frame import Frame
+# typing
 from multiprocessing import Queue
+from multiprocessing.synchronize import Event
+
 
 
 class Goalie():
-    def __init__(self,dispatch_q:Queue,wm:WorldModel,goalie_id,is_yellow):
+    def __init__(self,is_running:Event,dispatch_q:Queue,wm:WorldModel,goalie_id,is_yellow):
+        self.is_running = is_running
         self.dispatch_q = dispatch_q
         self.is_yellow = is_yellow
         self.wm = wm
@@ -29,33 +33,38 @@ class Goalie():
         pass
     
     def run(self):            
-        while True:     
+        while self.is_running.is_set():     
             # if self.version <= self.wm.get_version():
             try:
                 frame = self.wm.get_latest_frame()
                 robot = frame.get_yellow_robots(isYellow=self.is_yellow,robot_id=self.id)
                 self.ball_hist = self.update_ball_history(5)
-            except AttributeError:
-                continue
-            
-            goalie_points = predict_trajectory(self.ball_hist, 3, isPostive=self.is_positive, feild_size=(self.field_x,self.field_y))
-        
-            goalie_pos = robot.position
-            
-            if goalie_points[1] == True:   
-                # if there's a point go block           
-                target_pos1 = world2robot(robot_position=goalie_pos,target_position=goalie_points[0])
-            else: #reset position
-                target_pos1 = world2robot(robot_position=goalie_pos,target_position= (self.neutral_x_pos, 0))
+                # maybe attribute error here 
                 
-            # print("Relative Target : ", target_pos1)
-            vx1,vy1 = RobotMovement.go_To_Target(target_pos=target_pos1, stop_threshold=50)
-           
-    
-            command1 = RobotCommand(robot_id=self.id,vx=vx1,vy=vy1)
-            # puts command into queue
-            self.dispatch_q.put((command1, 0.01)) # 0.1 seconds runtime
+                goalie_points = predict_trajectory(self.ball_hist, 3, isPostive=self.is_positive, feild_size=(self.field_x,self.field_y))
+            
+                goalie_pos = robot.position
+                
+                if goalie_points[1] == True:   
+                    # if there's a point go block           
+                    target_pos1 = world2robot(robot_position=goalie_pos,target_position=goalie_points[0])
+                else: #reset position
+                    target_pos1 = world2robot(robot_position=goalie_pos,target_position= (self.neutral_x_pos, 0))
+                    
+                # print("Relative Target : ", target_pos1)
+                vx1,vy1 = RobotMovement.go_To_Target(target_pos=target_pos1, stop_threshold=50)
+            
         
+                command1 = RobotCommand(robot_id=self.id,vx=vx1,vy=vy1)
+                # puts command into queue
+                self.dispatch_q.put((command1, 0.01)) # 0.1 seconds runtime
+                
+            except AttributeError:
+                continue # we skip
+            except KeyboardInterrupt:
+                break
+        print("goalie exited")
+                
     def update_ball_history(self,n:int):
         self.ball_hist = list()
         frames = self.wm.get_last_n_frames(n)
@@ -69,6 +78,6 @@ class Goalie():
         return self.ball_hist
         
     
-def run_goalie(dispatch_q,wm: WorldModel,goalie_id,is_yellow):
-    g = Goalie(dispatch_q,wm,goalie_id=goalie_id,is_yellow=is_yellow)
+def run_goalie(is_running,dispatch_q,wm: WorldModel,goalie_id,is_yellow):
+    g = Goalie(is_running,dispatch_q,wm,goalie_id=goalie_id,is_yellow=is_yellow)
     g.run()

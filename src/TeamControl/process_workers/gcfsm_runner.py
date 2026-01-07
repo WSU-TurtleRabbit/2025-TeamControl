@@ -1,40 +1,17 @@
 from TeamControl.SSL.game_controller.Message import RefereeMessage,GameEvent
-from TeamControl.SSL.game_controller.common import Command,Stage,GameEventType,Team
+from TeamControl.SSL.game_controller.common import Command,Stage,GameEventType,Team,PacketType, GameState
 from TeamControl.network.ssl_sockets import GameControl
 
+from TeamControl.process_workers.worker import BaseWorker
 from multiprocessing import Queue
 from enum import Enum,auto
 
-# these are Enums defined by us
-
-class PacketType(Enum): # for message sending onto gc_queue
-    ROBOTS_ACTIVE = auto()
-    NEW_STATE = auto()
-    SWITCH_TEAM = auto()
-    BLF_LOCATION = auto()
-
-class GameState(Enum):
-    HALTED = auto()
-    STOPPED = auto()
-    RUNNING = auto()
-    PREPARE_KICKOFF = auto()
-
-    FREE_KICK = auto()
-    BALL_PLACEMENT = auto()
-    KICKOFF = auto()
-    
-    HALF_TIME = auto()
-    # TIME_OUT = auto()
-    
-    PENALTY_SHOOT = auto()
-    PENALTY_DEFEND = auto()
 
 
-class GCfsm ():
-    def __init__(self,output_q:Queue,us_positive:bool=None,us_yellow:bool=None):
-        self.output_q = output_q
-        self.us_yellow = us_yellow
-        self.us_positive = us_positive
+class GCfsm (BaseWorker):
+    def __init__(self,is_running,logger):
+        super().__init__(is_running,logger)
+        
         self.last_ref_msg = None
         # state, command, event, stage
         self.current_command = None
@@ -51,12 +28,32 @@ class GCfsm ():
 
         # last known ball_left_field_location
         self.last_blf_location = None
+        self.recv = GameControl(is_running=is_running)
+    
+    def setup(self,*args):
+        output_q, us_yellow, us_positive = args
         
-
-    def update(self,new_ref_msg:RefereeMessage):
+        self.output_q = output_q
+        self.us_yellow = us_yellow
+        self.us_positive = us_positive    
+        self.logger.info (f"[GCP] : Setup Complete {self.output_q=}, {us_yellow=}, {us_positive=}")
+        
+    def step(self):
+        # listen from GameControl socket
+        new_data = self.recv.listen()
+        # if the socket says None
+        if new_data is None:
+            self.logger.error("[GCP] received None from Socket")
+            # time.sleep(1) # wait one sec
+            raise AttributeError("received None from Socket") # if this is none, continue
+        
+        new_ref_msg:RefereeMessage = RefereeMessage.from_proto(new_data)
         # no previous packets
-        if self.last_ref_msg is not None and new_ref_msg.packet_timestamp < self.last_ref_msg.packet_timestamp:
-            return 
+        if self.last_ref_msg is not None:
+            # check if the timestamp is before
+            if new_ref_msg.packet_timestamp < self.last_ref_msg.packet_timestamp:
+                return
+        
         # otherwise :
         self.last_ref_msg = new_ref_msg
         # check team color if this changes, basically resets everything
@@ -168,7 +165,6 @@ class GCfsm ():
     def update_state(self,command,stage):
         if not isinstance(command,Command) or not isinstance(stage,Stage):
             return
-        print(command)
         if command == Command.STOP:
             state = GameState.STOPPED
         elif command == Command.PREPARE_KICKOFF_YELLOW:
@@ -241,14 +237,3 @@ class GCfsm ():
                 packet = (PacketType.BLF_LOCATION, location)
                 self.output_q.put_nowait(packet)
                 
-                
-                
-                
-def run_gcfsm(output_q,us_yellow=None,us_positive=None): #Process for multiprocess
-    fsm = GCfsm(output_q=output_q,us_yellow=us_yellow,us_positive=us_positive)
-    gcl = GameControl()
-    while True: 
-        raw_ref_msg = gcl.listen() # listens overnetwork
-        new_ref_msg = RefereeMessage.from_proto(raw_ref_msg) # format into class
-        fsm.update(new_ref_msg) # updates state machine
-    
