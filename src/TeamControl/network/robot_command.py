@@ -1,6 +1,3 @@
-# Robot Commands
-import logging
-import datetime
 import time
 from TeamControl.network.proto2 import grSim_Commands_pb2
 from TeamControl.network.proto2 import grSim_Packet_pb2
@@ -8,7 +5,7 @@ from TeamControl.network.proto2 import grSim_Packet_pb2
 
 
 class RobotCommand():
-    def __init__(self, robot_id : int, vx : float=0.0, vy: float=0.0, w : float=0.0, kick : int=0, dribble : int=0, time_origin : float= 0.0, isYellow: bool = True):
+    def __init__(self, robot_id : int, vx : float=0.0, vy: float=0.0, w : float=0.0, kick : int=0, dribble : int=0, time_origin : float= 0.0,isYellow=True):
         """Robot Command (Previously know as Command)
             Object for initialise commands, encode / decode strings for UDP transportation.
         Args:
@@ -33,17 +30,9 @@ class RobotCommand():
         self.dribble: int = int(dribble)
         self.time_origin: float = float(time_origin)
     
-    def to_dict(self):
-        return {
-            "robot_id": self.robot_id,
-            "vx" : self.vx,
-            "vy" : self.vy,
-            "w" : self.w,
-            "kick" : self.kick,
-            "dribble" : self.dribble,
-            "isYellow" : self.isYellow
-        }
-    
+    def __str__(self) -> str:
+        return f"{self.robot_id} {self.vx} {self.vy} {self.w} {self.kick} {self.dribble} {self.time_set}"
+
     def __repr__(self):
         """repr 
             This is a magic function
@@ -52,37 +41,14 @@ class RobotCommand():
         return: 
           string : In debuging format of RobotCommand Class objct
         """
-        return f"{self.time_set=},{self.time_origin=}| {self.robot_id=} | {self.vx=} , {self.vy=}, {self.w=} | {self.kick=} {self.dribble=}"
-            
-    def __str__(self) -> str:
-        # the string will not include isYellow
-        return f"{self.robot_id} {self.vx} {self.vy} {self.w} {self.kick} {self.dribble} {self.time_set}"
+        return f"{self.time_set=} , {self.time_origin=} : {self.robot_id=} {self.isYellow} | {self.vx=} , {self.vy=}, {self.w=} | {self.kick=} | {self.dribble=}"
+        
         
     def encode(self) -> bytes:
-        """encode
-            Encodes Command object into bytes
-            
-        Returns:
-            bytes: byte data for sending
-        
-        """
-        self.encoded = bytes(str(self).encode('utf-8'))
-        return self.encoded
-    
-    @classmethod
-    def decode(cls,command_msg:str|bytes) -> object:
-        """decode
-            decode and stores the Command to an object *This needs to be a class method
-        Args:
-            command_msg (str|bytes): message received upon UDP (in the form of string or bytes)
-            
-        Params: 
-            args (arguments): list of arguments to be parsed into creating an RobotCommand Object
+        return bytes(str(self).encode("utf-8"))
 
-        Returns:
-            object: RobotCommand object for robot to access
-        """
-        ## if bytes, decode into string first
+    @classmethod
+    def decode(cls, command_msg: str | bytes):
         if isinstance(command_msg, bytes):
             command_msg = command_msg.decode()
 
@@ -91,5 +57,3 @@ class RobotCommand():
         args = [int(robot_id), float(vx),float(vy),float(w),int(kick),int(dribble),float(time_origin)]
         
         return RobotCommand(*args) 
-    
-  

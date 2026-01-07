@@ -36,10 +36,8 @@ class Dispatcher(BaseWorker):
         else:
             self.g_sender = None
         
-         
-        # self.g_sender = grSimSender()
         self.announce_initialisation()
-        
+
     # Announce that the dispatcher has been created
     def announce_initialisation(self):
         print("Multi-robot dispatcher initialized!")
