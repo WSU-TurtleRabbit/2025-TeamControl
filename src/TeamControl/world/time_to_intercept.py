@@ -27,6 +27,7 @@ def time_to_intercept(ball_pos, target, ball_hist):
 
 
     if  v==0 or direction_info == TrajectoryType.MOVE_AWAY_FROM_GOAL or intersects_line is False:
+        print("no interception")
         return None
     
     print(f"Time to intercept: {dist/v}")
