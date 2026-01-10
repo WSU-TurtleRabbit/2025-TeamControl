@@ -3,7 +3,7 @@ import pygame
 import math
 import time
 
-from TeamControl.network.sender import Sender
+from TeamControl.network.sender import LockedSender
 from TeamControl.network.robot_command import RobotCommand
 
 class Remote_robot():
@@ -14,7 +14,7 @@ class Remote_robot():
 
 
         robot_ip = "172.20.10.2"
-        self.sender = Sender(ip=robot_ip,port=50514)
+        self.sender = LockedSender(ip=robot_ip,port=50514)
         
 
 
