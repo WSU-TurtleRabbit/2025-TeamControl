@@ -10,7 +10,7 @@ def transformation_matrix(p):
         output:
             transformation matrix (rotation and translation)
     '''
-    is_grsim = False
+    is_grsim = True
     if is_grsim:
         angle = p[2]
     else:

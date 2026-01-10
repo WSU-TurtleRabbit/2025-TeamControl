@@ -1,12 +1,14 @@
 import math
 import numpy as np
-from TeamControl.world.transform_cords import *
-from typing import Tuple, Union, List, Optional
+from typing import Tuple, Optional, List
 
+from TeamControl.world.transform_cords import world2robot
 
-from typing import Tuple, Union, List, Optional
-
-class RobotMovement():
+def wrap_to_pi(a) -> float:
+    return (a + np.pi) % (2*np.pi) - np.pi
+    
+class RobotMovement:
+    
     
     @classmethod
     def velocity_to_target(cls,robot_pos: tuple[float, float, float],
@@ -24,94 +26,105 @@ class RobotMovement():
         transTarget = world2robot(robot_pos, target)
         vx, vy = cls.go_To_Target(transTarget, stop_threshold = stop_threshold,speed=speed)
         if turning_target is None:
-            w = 0
+            w = 0.0
         else:
-            transTurningTarget = world2robot(robot_pos, turning_target)
-            w = cls.turn_to_target(transTurningTarget)
-            
+            trans_turn_target = world2robot(robot_pos, turning_target)
+            w = cls.turn_to_target(trans_turn_target)
+
         return vx, vy, w
-    
-    @classmethod
-    def goShootVelcoity(cls, robot_pos:tuple[float, float,float], target: tuple[float, float]):
-        shooting_position = cls.shooting_pos(target)
-        vx, vy, w = cls.velocity_to_target(robot_pos, shooting_position, target)
-        return vx, vy, w
-    
+
     @staticmethod
-    def turn_to_target(target:tuple[float,float] =None, epsilon: float=0.15, speed: float = 0.005, robotOmega = None):
+    def turn_to_target(target:tuple[float,float] =None, epsilon: float=0.1, speed: float = 1, d_time:float = 1):
         '''
             This function returns an agular velocity. The goal is to turn the robot
             in such a way that it is facing the ball with its kicker side.
 
             input: 
-                ball_position: ball position in the robot coordinate systen (e.g. (10mm,50mm))
+                target: the relative target postition format: (x,y)
                 epsilon: Threshold for the orientation (orientation does not have to be zero to 
                         consider it correct -> avoids jitter)
+                speed: the average default speed 
+                d_time : the time scaler for how fast we want to turn while going
         '''
-        if target is None :
-            return None
-        orientation_to_ball = np.arctan2(target[0], target[1])-np.pi/2
+        if target is None:
+            return 0.0
 
-        if abs(orientation_to_ball) < epsilon:
-            # to avoid jitter
-            omega = 0
-        elif abs(orientation_to_ball) > epsilon and abs(orientation_to_ball) < 2 * epsilon:
-            omega = -speed*np.sign(orientation_to_ball) * 0.05
+        new_orientation = wrap_to_pi(np.arctan2(target[1],target[0]))    
+        if abs(new_orientation) < epsilon: #smaller than threshold
+            # print("Already looking at target")
+            omega = 0.0
+
+        elif abs(new_orientation) < 2 * epsilon:
+            omega = new_orientation/d_time * speed * 0.05
         else:
-            omega = speed*np.sign(orientation_to_ball)* 0.5
-        
-        print(orientation_to_ball)
-        return omega 
+            omega = new_orientation/d_time * speed * 1
+
+        return omega
+    
     
     @staticmethod
-    def go_To_Target(target_pos: tuple[float,float], speed: int=0.08, stop_threshold:float=150):
-        """go To Target Position (in respect to Robot)
-        if the distance is further away from stop_threshold,
-        it will go to target position with calculated speed.
-
-        Args:
-            target_pos (tuple[float,float]): targeted position relative to robot
-            speed (int, optional): Speed of Robot going to target. Defaults to 5.
-            stop_threshold (float, optional): Distance range for robot to ignore. Defaults to 300.
-
-        Returns:
-            tuple[float,float]: velcocity x , velocity y
+    def behind_ball_point(ball, goal, buffer_radius):
         """
-        if target_pos is None:
-            return 0,0
-        distance = math.sqrt(target_pos[0]**2 + target_pos[1]**2)
+        ball  = (bx, by)
+        goal  = (gx, gy)
+        buffer_radius = distance of the behind-ball point from the ball
 
-        # print(distance)
-        if distance > stop_threshold:
-            vy:float = (target_pos[1] / distance) * speed
-            vx:float = (target_pos[0] / distance) * speed
-            return vx,vy
-        else: 
-            return 0,0
+        Returns: (x, y) behind-ball target position
+        """
+
+        bx, by = ball
+        gx, gy = goal
+
+        # Direction vector from ball → goal
+        dx = gx - bx
+        dy = gy - by
+
+        # Distance
+        d = math.sqrt(dx**2 + dy**2) # is this dx2/dx**2
+        if d == 0:
+            raise ValueError("Ball and goal cannot be at the same point")
+
+        # Normalize direction
+        dx /= d
+        dy /= d
+
+        # Opposite direction (behind the ball)
+        behind_x = bx - dx * buffer_radius
+        behind_y = by - dy * buffer_radius
+
+        return behind_x, behind_y
 
     @staticmethod
-    def shooting_pos(ball_pos:tuple[float,float],shootingTarget: tuple[float,float], robot_offset = 500):
-        '''
-        This function returns the target position for a robot. It needs this
-        to aim and shoot a ball.
-        shootingTarget: target your aiming to shoot
-        robot_offset: how far in front you want teh robot to be
-        '''
-        # Calculate direction vector from ball to target
-        direction = np.array(shootingTarget) - np.array(ball_pos)
-        
-        # Normalize direction vector
-        direction = direction.astype(float)  # Ensure direction vector is float
-        direction = np.linalg.norm(direction)
-        
-        # Calculate robot position slightly behind the ball
-        robot_position = np.array(ball_pos) - robot_offset * direction
-        
-        return robot_position
-    
-    
-   
+    def go_To_Target(target_pos: tuple[float, float],
+                     speed: float = 1.0,
+                     stop_threshold: float = 150.0):
 
+        if target_pos is None:
+            return 0.0, 0.0
+
+        dist = math.hypot(target_pos[0], target_pos[1])
+        if dist > stop_threshold:
+            vx = (target_pos[0] / dist) * speed
+            vy = (target_pos[1] / dist) * speed
+            return vx, vy
+
+        return 0.0, 0.0
+
+    @staticmethod
+    def shooting_pos(ball_pos: tuple[float, float],
+                     shootingTarget: tuple[float, float],
+                     robot_offset: float = 200.0):
+
+        direction = np.array(shootingTarget) - np.array(ball_pos)
+        direction = direction.astype(float)  # Ensure direction vector is float
+        norm = np.linalg.norm(direction)
+        
+        if norm == 0:
+            return np.array(ball_pos, dtype=float)
+
+        direction /= norm
+        return np.array(ball_pos) - robot_offset * direction
+    
     @staticmethod 
     def calculate_target_position(target, ball, robot_offset):
         '''

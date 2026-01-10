@@ -1,13 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
-
+from enum import Enum,auto
 # PARAMETERSAG
 GOAL_WIDTH = 2760  # mm - Update this value based on actual goal width
 FIELD_WIDTH = 2760  # mm
 FIELD_LENGTH = 5040  # mm
 FRAME_RATE = 60  # Hz
 GOALIE_LINE = -1200  # mm
+
+class TrajectoryType(Enum):
+    MOVE_AWAY_FROM_GOAL = auto() # "Moving away from the goal"
+    MOVE_TOWARDS_GOAL = auto() # "Moving towards the goal"
+    NO_MOVEMENT_DETECTED = auto() # "Moving perpendicular to the goal/not moving"
 
 # Plot
 def plot_trajectory_w_goal(trajectory, ball_positions_x, ball_positions_y, intersects_line, intersection_point, direction_info, velocity, plot_enabled=True):
@@ -89,8 +94,8 @@ def predict_trajectory(history, num_samples, calculate_velocity=False):
         return None, None, None, None
 
     # extract x and y coordinates from history
-    ball_positions_x = [coord["x"] for coord in history]
-    ball_positions_y = [coord["y"] for coord in history]
+    ball_positions_x = [coord[0] for coord in history]
+    ball_positions_y = [coord[1] for coord in history]
 
     # select last num_samples position for regression
     last_ball_positions_x = ball_positions_x[-num_samples:]
@@ -111,18 +116,18 @@ def predict_trajectory(history, num_samples, calculate_velocity=False):
     # determine the direction of ball's movement
     if GOALIE_LINE < 0:
         if current_x > previous_x:
-            direction_info = "Moving away from the goal"
+            direction_info = TrajectoryType.MOVE_AWAY_FROM_GOAL
         elif current_x < previous_x:
-            direction_info = "Moving towards the goal"
+            direction_info = TrajectoryType.MOVE_TOWARDS_GOAL
         else:
-            direction_info = "Moving perpendicular to the goal/not moving"
+            direction_info = TrajectoryType.NO_MOVEMENT_DETECTED
     else:
         if current_x < previous_x:
-            direction_info = "Moving away from the goal"
+            direction_info = TrajectoryType.MOVE_AWAY_FROM_GOAL
         elif current_x > previous_x:
-            direction_info = "Moving towards the goal"
+            direction_info = TrajectoryType.MOVE_TOWARDS_GOAL
         else:
-            direction_info = "Moving perpendicular to the goal/not moving"
+            direction_info = TrajectoryType.NO_MOVEMENT_DETECTED
 
     # predict y coordinates of the ball at the goalie line
     trajectory_y_at_goal_line = model.predict(np.array([GOALIE_LINE]).reshape(-1, 1))[0]
@@ -136,7 +141,13 @@ def predict_trajectory(history, num_samples, calculate_velocity=False):
         velocity = np.sqrt((delta_x / time_elapsed) ** 2 + (delta_y / time_elapsed) ** 2)
 
     # Output predicted trajectory, direction info, y-coordinate at the goalie line, velocity
-    return list(zip(x_values, y_values)), direction_info, trajectory_y_at_goal_line, velocity
+    return {
+        "predicted_trajectory": list(zip(x_values, y_values)),
+        "direction_info":direction_info,
+        "trajectory_y_at_goal":trajectory_y_at_goal_line,
+        "velocity": velocity
+    }
+   
 
 def goal_intersection(trajectory_y_at_goal_line):
     """

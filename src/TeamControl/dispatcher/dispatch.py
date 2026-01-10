@@ -65,26 +65,26 @@ class Dispatcher(BaseWorker):
     def check_new_commands(self):
         if not self.q.empty():
             queue_item = self.q.get_nowait()
-            command, runtime = queue_item # this requires a command and runtime
+            command, runtime = queue_item
             self.add(command, runtime)
         
 
-    # Add a new command to the running commands and replace exisiting commands for the robot with the same ID
-    def add(self, command, run_time):
+    # Add a new command to the running commands and replace existing commands
+    # for the robot with the same ID
+    def add(self, command: RobotCommand, run_time: float):
         robot_id = command.robot_id
         isYellow = command.isYellow
         self.running_commands[robot_id] = {"isYellow": isYellow,"command": command, "runtime": run_time, "start_time": time.time()}
-        print(f"[{robot_id=},{isYellow=}] New command added for {run_time}s , command: {command}")
+        self.logger.debug(f"[{robot_id=},{isYellow=}] New command added for {run_time}s , command: {command}")
         
     # Check if any commands have expired
     def check_command_timeout(self):
         expired_commands = []
-        
+
         for robot_id, packet in self.running_commands.items():
             elapsed_time = time.time() - packet["start_time"]
-            
             if elapsed_time >= packet["runtime"]:
-                print(f"[Robot {robot_id}] Command expired after {elapsed_time:.2f}s")
+                self.logger.debug(f"[Robot {robot_id}] Command expired after {elapsed_time:.2f}s")
                 expired_commands.append(robot_id)
 
         for robot_id in expired_commands:
@@ -94,7 +94,7 @@ class Dispatcher(BaseWorker):
     def reset_command(self, robot_id):
         isYellow = self.running_commands[robot_id]["isYellow"]
         reset_command = RobotCommand(robot_id=robot_id, vx=0, vy=0, w=0, kick=0, dribble=0,isYellow=isYellow)
-        print(f"[{isYellow=} {robot_id}] Reset to idle command")
+        self.logger.debug(f"[{isYellow=} {robot_id}] Reset to idle command")
         
         self.running_commands[robot_id] = {"isYellow" : isYellow, "command": reset_command, "runtime": 9999999, "start_time": time.time()}
 

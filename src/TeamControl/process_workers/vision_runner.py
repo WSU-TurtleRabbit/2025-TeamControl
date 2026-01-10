@@ -75,6 +75,8 @@ class VisionProcess(BaseWorker):
             # we update the original frame
             self.logger.info(f"[VP] : Updating old frame : {new_detection_data.frame_number}")
             self.frame.update(new_detection_data)
+        else:
+            return
         
         # if the frame is now completed 
         if self.frame.is_completed is True:
