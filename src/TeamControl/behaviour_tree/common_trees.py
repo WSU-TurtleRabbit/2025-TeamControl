@@ -1,3 +1,4 @@
+from TeamControl.network.robot_command import RobotCommand
 import py_trees
 
 
@@ -16,12 +17,13 @@ class GetWorldPositionUpdate(py_trees.behaviour.Behaviour):
         self.bb = py_trees.blackboard.Client(name="GetWorldPositionUpdate")
         self.bb.register_key(key="ball_pos", access=py_trees.common.Access.WRITE)
         self.bb.register_key(key="our_robots", access=py_trees.common.Access.WRITE)
-        pass
-    
+        self.bb.register_key(key="isYellow", access=py_trees.common.Access.READ)
     def initialise(self):
         pass
         
     def update(self) -> py_trees.common.Status:
+        self.isYellow = self.bb.isYellow    
+
         new_version = self.wm.get_version()
         if self.version < new_version:
             self.version = new_version
@@ -31,7 +33,7 @@ class GetWorldPositionUpdate(py_trees.behaviour.Behaviour):
                     self.ball_last_known = self.frame.ball.position
                     self.bb.ball_pos = self.ball_last_known
                     print(self.ball_last_known)
-                    our_robots = self.frame.get_yellow_robots(isYellow=True)
+                    our_robots = self.frame.get_yellow_robots(isYellow=self.isYellow)
                     self.bb.our_robots = our_robots
                     
             return py_trees.common.Status.SUCCESS
@@ -59,11 +61,12 @@ class SendRobotCommand(py_trees.behaviour.Behaviour):
         self.bb.register_key(key="dribble", access=py_trees.common.Access.READ)
         self.bb.register_key(key="command", access=py_trees.common.Access.WRITE)
         
-        # preset 
-        self.last_command = self.bb.command
         
         
     def initialise(self):
+        # preset
+        self.last_command = getattr(self.bb,"command",None)
+        
         robot_id = self.bb.robot_id
         isYellow = self.bb.isYellow
         vx = self.bb.vx if self.bb.exists("vx") else 0.0
