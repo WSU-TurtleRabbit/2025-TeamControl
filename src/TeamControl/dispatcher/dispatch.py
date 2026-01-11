@@ -117,7 +117,10 @@ class Dispatcher(BaseWorker):
         self.r_sender.send(command,robot_dict["ip"],robot_dict["port"])
         if self.send_to_grSim is True:
             self.g_sender.send_robot_command(command,override_id=robot_dict["grSimID"])
-        self.logger.info(f"RobotCommand has been sent to robot : {robot_dict["shellID"]=} , {robot_dict["grSimID"]=}")
+        self.logger.info(
+            f"RobotCommand sent: shellID={robot_dict['shellID']} grSimID={robot_dict['grSimID']}"
+        )
+
     
     def get_dict_from_shell(self,shell_id,isYellow) -> str:
         team = self.yellow if isYellow is True else self.blue

@@ -7,8 +7,7 @@ from TeamControl.world.transform_cords import world2robot
 def wrap_to_pi(a) -> float:
     return (a + np.pi) % (2*np.pi) - np.pi
     
-class RobotMovement:
-    
+class RobotMovement:    
     
     @classmethod
     def velocity_to_target(cls,robot_pos: tuple[float, float, float],
@@ -142,6 +141,56 @@ class RobotMovement:
         robot_position = np.array(ball) - robot_offset * direction
         
         return robot_position
+    
+    def striker_go_To_Target(target_pos, stop_threshold=150.0, speed=1.2):
+        """
+        Simple proportional translation controller in robot frame.
+        Returns vx, vy in robot frame.
+        """
+        if target_pos is None:
+            return 0.0, 0.0
+
+        dist = math.hypot(target_pos[0], target_pos[1])
+        if dist <= stop_threshold:
+            return 0.0, 0.0
+
+        return (
+            (target_pos[0] / dist) * speed,
+            (target_pos[1] / dist) * speed,
+        )
+    
+    def striker_turn_to_target(target, epsilon=0.10, max_speed=2.0):
+        """
+        Rotate robot to face target (robot frame).
+        """
+        angle = math.atan2(target[1], target[0])
+        if abs(angle) < epsilon:
+            return 0.0
+
+        w = 2.0 * angle
+        if w > max_speed:
+            w = max_speed
+        if w < -max_speed:
+            w = -max_speed
+        return w
+    
+    def striker_behind_ball_point(ball: tuple[float, float], goal: tuple[float, float], buffer_radius: float):
+        """
+        Compute a point behind the ball on the ball→goal line.
+        """
+        bx, by = ball
+        gx, gy = goal
+
+        dx = gx - bx #x-component of ball→goal
+        dy = gy - by #y-component of ball→goal
+        d = math.hypot(dx, dy) #length of that vector
+
+        if d == 0.0:
+            return (bx, by)
+
+        dx /= d #normalize
+        dy /= d #normalize
+        return (bx - dx * buffer_radius, by - dy * buffer_radius) #by - dy * R = move backward
         
 
 class Follow_path:
