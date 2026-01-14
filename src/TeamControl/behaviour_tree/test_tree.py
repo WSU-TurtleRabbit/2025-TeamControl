@@ -10,7 +10,7 @@ import py_trees
 import numpy as np
 import math
 
-MAX_SPEED = 0.5
+MAX_SPEED = 1
 
 class TestTreeSeq(py_trees.composites.Sequence):
     def __init__(self,wm,dispatcher_q,robot_id:int=1,isYellow=True,isPositive=None,logger=None):
@@ -52,7 +52,7 @@ class TestTreeSeq(py_trees.composites.Sequence):
     
     def initialise(self):
         for i in self.children:
-            i.setup(self.logger)
+            i.setup()
         
         
 class GoToBallSeq(py_trees.composites.Sequence):
@@ -63,10 +63,15 @@ class GoToBallSeq(py_trees.composites.Sequence):
         self.bb = py_trees.blackboard.Client(name=name)
         if self.turn_to_ball:
             # self.add_child(LookAtTarget(facing_pos=[343.981232,-26.9238338],speed=MAX_SPEED/2))
-            self.add_child(LookAtTarget(speed=MAX_SPEED/2))
-        self.add_child(GoToTarget())
+            self.add_child(LookAtTarget(epsilon=0.015,
+                                        speed=MAX_SPEED/2))
+        self.add_child(GoToTarget(threshold=400))
+        self.add_child(DoDribbleKick(speed=MAX_SPEED/3,
+                                     dribble_threshold=400,
+                                     kick_threshold=102,
+                                     kick_angle=0.015))
         
-    def setup(self,logger=None):
+    def setup(self):
         
         self.bb.register_key(key="robot_pos",access=py_trees.common.Access.READ)
         self.bb.register_key(key="ball_pos",access=py_trees.common.Access.READ)
@@ -79,7 +84,7 @@ class GoToBallSeq(py_trees.composites.Sequence):
             self.bb.facing_pos = self.bb.ball_pos
         print("hi")
         for i in self.children:
-            i.setup(self.logger)
+            i.setup()
 
         
 class LookAtTarget(py_trees.composites.Selector):
@@ -151,7 +156,7 @@ class AlreadyLookingAtTarget(py_trees.behaviour.Behaviour):
         new_orientation = self.wrap_to_pi(np.arctan2(trans_pos[1],trans_pos[0]))
         
         self.bb.d_theta = new_orientation 
-        print(self.bb.d_theta,new_orientation,self.bb.robot_pos[2])
+        # print(self.bb.d_theta,new_orientation,self.bb.robot_pos[2])
 
         if abs(self.bb.d_theta) < self.epsilon: #smaller than threshold
             self.logger.debug("Already looking at target")
@@ -192,7 +197,7 @@ class CalculateAngularVelocity(py_trees.behaviour.Behaviour):
  
   
 class GoToTarget(py_trees.composites.Selector):
-    def __init__(self,threshold:int=150):
+    def __init__(self,threshold:int=150,speed=1):
         name = f"Go_To_Target"
         super().__init__(name,memory=True)
         self.b1 = py_trees.blackboard.Client(name=name)
@@ -203,7 +208,7 @@ class GoToTarget(py_trees.composites.Selector):
             # check if it is at target
             AlreadyAtTarget(threshold=threshold),
             # otherwise calculate the velocity to target
-            CalculateLinearVelocity(threshold=threshold)
+            CalculateLinearVelocity(threshold=threshold,speed=speed)
         ]) 
         
     def setup(self,logger=None):
@@ -257,10 +262,11 @@ class AlreadyAtTarget(py_trees.behaviour.Behaviour):
 
 
 class CalculateLinearVelocity(py_trees.behaviour.Behaviour):
-    def __init__(self,threshold:float=300):
+    def __init__(self,threshold:float,speed:float):
         name = "CalculateLinearVelocity"
         self.bb = py_trees.blackboard.Client(name=name)
         self.threshold = threshold
+        self.speed = speed
 
         super().__init__(name)
     
@@ -288,8 +294,50 @@ class CalculateLinearVelocity(py_trees.behaviour.Behaviour):
         # otherwise this is failure
         print("[CalculateRobotToBall] Missing robot or ball position")
         return py_trees.common.Status.FAILURE
+
+class DoDribbleKick(py_trees.behaviour.Behaviour):
+    def __init__(self, speed:float,dribble_threshold:float,kick_threshold:float,kick_angle:float):
+        name = "Doing Dribble Kick"
+        super().__init__(name)
+        self.dribble_threshold = dribble_threshold
+        self.kick_threshold = kick_threshold
+        self.kick_angle = kick_angle
+        self.speed = speed
+        self.bb = py_trees.blackboard.Client(name=name)
+        self.bb.register_key(key="dribble",access=py_trees.common.Access.WRITE)
+        self.bb.register_key(key="kick",access=py_trees.common.Access.WRITE)
+        self.bb.register_key(key="vx",access=py_trees.common.Access.WRITE)
+        self.bb.register_key(key="vy",access=py_trees.common.Access.WRITE)
+        self.bb.register_key(key="target_dist",access=py_trees.common.Access.READ)
+        self.bb.register_key(key="trans_pos",access=py_trees.common.Access.READ)
+        self.bb.register_key(key="d_theta",access=py_trees.common.Access.READ)
+        
     
-    
+    def update(self):
+        distance = self.bb.target_dist 
+        angle_diff = self.bb.d_theta
+        print("distance",distance)
+        if distance <= self.dribble_threshold:
+            # starts dribble
+            self.bb.dribble = 1
+            self.bb.vx, self.bb.vy = RobotMovement.go_To_Target(target_pos=self.bb.trans_pos,speed=self.speed, stop_threshold=self.kick_threshold)
+            self.logger.info("Dribble Ball")
+
+        
+        if distance <= self.kick_threshold and angle_diff <= self.kick_angle:
+            self.bb.dribble = 0
+            self.bb.kick = 1
+            # self.bb.vx,self.bb.vy = 0,0
+            self.logger.info("Kick Ball")
+
+            # do Kick
+        else:
+            self.bb.dribble = 0
+            self.bb.kick = 0
+            
+        return py_trees.common.Status.SUCCESS
+
+        
 ## temp
 
 class SendRobotCommand(py_trees.behaviour.Behaviour):
