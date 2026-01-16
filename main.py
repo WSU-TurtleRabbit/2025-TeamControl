@@ -1,7 +1,10 @@
+#!/usr/bin/env python
+
 # from TeamControl.process_workers.worker import run_worker
 from TeamControl.process_workers.vision_runner import VisionProcess
 from TeamControl.process_workers.gcfsm_runner import GCfsm
 from TeamControl.process_workers.wm_runner import WMWorker
+from TeamControl.process_workers.robot_recv_runner import RobotRecv
 from TeamControl.world.model_manager import WorldModelManager
 
 from TeamControl.utils.Logger import LogSaver
@@ -61,7 +64,7 @@ def main():
     # goalie = Process(target=run_goalie,args=(dispatch_q,wm,1,preset.us_yellow))
     # chaser = Process(target=run_follow_ball_dummy,args=(dispatch_q,wm,1,preset.us_yellow))
     # some_other_process2 = Process(target=DummyReader,args=(wm,))'
-    
+    robot_recv = Process(target=RobotRecv.run_worker, args=(is_running,logger))
     is_running.set()
     vision_wkr.start()
     gc_wkr.start()
@@ -69,6 +72,7 @@ def main():
     # goalie.start()
     dispatch_wkr.start()
     bt.start()
+    robot_recv.start()
     # chaser.start()
     # planner_wkr.start()
     # some_other_process2.start()
@@ -99,6 +103,7 @@ def main():
     dispatch_wkr.join(timeout=5)
             
     bt.join()
+    robot_recv.join()
     # chaser.join()   
     # goalie.join()
 
