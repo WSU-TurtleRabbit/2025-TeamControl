@@ -30,4 +30,4 @@ def run_bt_process(is_running:Event,wm:WorldModel, dispatcher_q:Queue)->None:
         # print(wm.get_game_state())
         # print(wm.get_version())
         bt.tick_tock(1, stop_on_terminal_state=True)
-        logger.debug(py_trees.display.unicode_tree(root, show_status=True))
+        # logger.debug(py_trees.display.unicode_tree(root, show_status=True))

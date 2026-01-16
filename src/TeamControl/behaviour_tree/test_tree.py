@@ -10,7 +10,7 @@ import py_trees
 import numpy as np
 import math
 
-MAX_SPEED = 1
+MAX_SPEED = 0.1
 
 class TestTreeSeq(py_trees.composites.Sequence):
     def __init__(self,wm,dispatcher_q,robot_id:int=1,isYellow=True,isPositive=None,logger=None):
@@ -65,10 +65,10 @@ class GoToBallSeq(py_trees.composites.Sequence):
             # self.add_child(LookAtTarget(facing_pos=[343.981232,-26.9238338],speed=MAX_SPEED/2))
             self.add_child(LookAtTarget(epsilon=0.015,
                                         speed=MAX_SPEED/2))
-        self.add_child(GoToTarget(threshold=400))
-        self.add_child(DoDribbleKick(speed=MAX_SPEED/3,
-                                     dribble_threshold=400,
-                                     kick_threshold=102,
+        self.add_child(GoToTarget(threshold=120))
+        self.add_child(DoDribbleKick(speed=MAX_SPEED/2,
+                                     dribble_threshold=120,
+                                     kick_threshold=120,
                                      kick_angle=0.015))
         
     def setup(self):
@@ -311,29 +311,31 @@ class DoDribbleKick(py_trees.behaviour.Behaviour):
         self.bb.register_key(key="target_dist",access=py_trees.common.Access.READ)
         self.bb.register_key(key="trans_pos",access=py_trees.common.Access.READ)
         self.bb.register_key(key="d_theta",access=py_trees.common.Access.READ)
+        self.cnt = 0
         
     
     def update(self):
         distance = self.bb.target_dist 
         angle_diff = self.bb.d_theta
         print("distance",distance)
-        if distance <= self.dribble_threshold:
+        self.bb.kick = 0
+        self.bb.dribble = 0
+
+        if distance <= self.dribble_threshold and angle_diff <= self.kick_angle:
             # starts dribble
             self.bb.dribble = 1
             self.bb.vx, self.bb.vy = RobotMovement.go_To_Target(target_pos=self.bb.trans_pos,speed=self.speed, stop_threshold=self.kick_threshold)
             self.logger.info("Dribble Ball")
-
-        
-        if distance <= self.kick_threshold and angle_diff <= self.kick_angle:
+            self.cnt +=1
+                    
+        if self.cnt >=5:
             self.bb.dribble = 0
             self.bb.kick = 1
+            self.cnt = 0
             # self.bb.vx,self.bb.vy = 0,0
             self.logger.info("Kick Ball")
 
-            # do Kick
-        else:
-            self.bb.dribble = 0
-            self.bb.kick = 0
+
             
         return py_trees.common.Status.SUCCESS
 
@@ -341,7 +343,7 @@ class DoDribbleKick(py_trees.behaviour.Behaviour):
 ## temp
 
 class SendRobotCommand(py_trees.behaviour.Behaviour):
-    def __init__(self,dispatcher_q,runtime=1):
+    def __init__(self,dispatcher_q,runtime=2):
         name = "SendRobotCommand"
         self.dispatcher_q = dispatcher_q
         self.runtime = runtime

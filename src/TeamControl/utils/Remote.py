@@ -3,7 +3,7 @@ import pygame
 import math
 import time
 
-from TeamControl.network.sender import Sender
+from TeamControl.network.sender import LockedSender
 from TeamControl.network.ssl_sockets import grSimSender
 from TeamControl.network.robot_command import RobotCommand
 
@@ -11,14 +11,14 @@ class Remote_robot():
     def __init__(self, robot_id=1, isYellow=True):
         self.robot_id = robot_id
         self.us_yellow = isYellow
-        robot_ip = "172.20.10.2"
-        # self.sender = Sender(ip=robot_ip,port=50514)
-        self.sender = grSimSender()
+        robot_ip = "172.20.10.14"
+        self.sender = LockedSender(ip=robot_ip,port=50514)
+        # self.sender = grSimSender()
         
 
 
     def run_remote_control(self):
-        speed = 50
+        speed = 0.1
         # vx,vy,vw,k,d = 0,0,0,0,0
         # dribbler_on = False
         pygame.init()
@@ -64,7 +64,7 @@ class Remote_robot():
             Command = RobotCommand(robot_id=self.robot_id, vx=vx,vy=vy,w=vw,kick=k,dribble=d,isYellow=self.us_yellow)
             # if Command.vx == 0 and Command.vy == 0 and Command.w ==0 :
             #     continue # skips the command send
-            self.sender.send_robot_command(Command)
+            self.sender.send(Command.encode())
             print("Command sent : ", Command)
             
             time.sleep(0.01)
