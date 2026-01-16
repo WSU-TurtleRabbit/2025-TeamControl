@@ -74,7 +74,14 @@ class Frame():
     
     @balls.setter
     def balls(self,balls_in_frame):
-        for data in balls_in_frame:
+        # print("dealing with Ball", type(balls_in_frame))
+        balls = list(balls_in_frame)
+        # print("dealing with Ball", balls_in_frame)
+        if len(balls) <1 : 
+            # print("No Ball")
+            self._balls = []
+        for data in balls:
+            # print("adding balls")
             new_ball = Ball(data)
             self._balls.append(new_ball)
         

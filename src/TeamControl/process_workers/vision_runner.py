@@ -16,7 +16,7 @@ class VisionProcess(BaseWorker):
     
     def __init__(self,is_running,logger):
         super().__init__(is_running=is_running,logger=logger)
-        self.loop_timer = None
+        self.loop_timer = time.time()
         self.field = None
         self.frame = None
         self.frame_number = -1
@@ -65,23 +65,29 @@ class VisionProcess(BaseWorker):
     def update_detection(self,new_detection_data):
         # if this frame number is older than the new frame
         if self.frame_number < new_detection_data.frame_number:
-            self.logger.info(f"[VP] :We get new frame : {new_detection_data.frame_number}")
             # generates new frame
+            self.frame_number = new_detection_data.frame_number
             self.frame = Frame.from_proto(new_detection_data,self.cameras)
-            self.frame_number = self.frame.frame_number
+            self.logger.info(f"[VP] :We get new frame : {new_detection_data.frame_number}")
+        
         
         # if same frame number = it is old frame
         elif self.frame_number == new_detection_data.frame_number:
             # we update the original frame
             self.logger.info(f"[VP] : Updating old frame : {new_detection_data.frame_number}")
             self.frame.update(new_detection_data)
-        
         # if the frame is now completed 
+        self.logger.info(f"hi me here {self.frame.is_completed is True}")
+
         if self.frame.is_completed is True:
             self.logger.info(f"[VP] : frame: {self.frame_number} has been completed with {self.cameras} cameras , time taken = {time.time() - self.loop_timer}")
             self.send(self.frame)
+            self.frame = None
+            self.loop_timer = time.time()
     
     def send(self,data):
+        self.logger.info("Sending data")
+
         if not self.output_q.full():
             self.output_q.put(data)
         else:
