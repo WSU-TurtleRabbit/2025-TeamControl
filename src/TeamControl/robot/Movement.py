@@ -90,16 +90,16 @@ class RobotMovement:
         return behind_x, behind_y
     
     @staticmethod
-    def threshold_zone(distance:float)-> float:
+    def threshold_zone(distance:float,max_speed:float)-> float:
         # return max speed allowed in that zone
         
-        if distance < 1: #kicker zone
+        if distance < 70: #kicker zone
             return 0.0
-        if distance < 300: #dribble zone
-            return 0.04
-        if distance < 500: #normal zone
-            return 0.08
-        return 0.1 #fast zone
+        if distance < 90: #dribble zone
+            return max_speed * 0.5
+        # if distance < 500: #normal zone
+        #     return max_speed * 0.75
+        return max_speed #fast zone
 
 
     @staticmethod

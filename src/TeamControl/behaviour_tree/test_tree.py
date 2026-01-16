@@ -13,7 +13,7 @@ import math
 MAX_SPEED = 0.1
 
 class TestTreeSeq(py_trees.composites.Sequence):
-    def __init__(self,wm,dispatcher_q,robot_id:int=1,isYellow=True,isPositive=None,logger=None):
+    def __init__(self,wm,dispatcher_q,robot_id:int=5,isYellow=True,isPositive=None,logger=None):
         color = "YELLOW" if isYellow is True else "BLUE"
         name = f"TestTreeSeq {robot_id},{color}"
         super().__init__(name,memory=True)
@@ -28,7 +28,6 @@ class TestTreeSeq(py_trees.composites.Sequence):
 
 
     def setup(self):
-
         self.bb.register_key(key="robot_pos",access=py_trees.common.Access.READ)
         self.bb.register_key(key="ball_pos",access=py_trees.common.Access.READ)
         
@@ -45,7 +44,7 @@ class TestTreeSeq(py_trees.composites.Sequence):
         
         self.add_children([
             GetWorldPositionUpdate(self.wm),
-            GetRobotIDPosition(self.robot_id),
+            GetRobotIDPosition(),
             GoToBallSeq(turn_to_ball=True),
             SendRobotCommand(self.dispatcher_q),
         ])
@@ -63,13 +62,13 @@ class GoToBallSeq(py_trees.composites.Sequence):
         self.bb = py_trees.blackboard.Client(name=name)
         if self.turn_to_ball:
             # self.add_child(LookAtTarget(facing_pos=[343.981232,-26.9238338],speed=MAX_SPEED/2))
-            self.add_child(LookAtTarget(epsilon=0.015,
-                                        speed=MAX_SPEED/2))
-        self.add_child(GoToTarget(threshold=120))
+            self.add_child(LookAtTarget(epsilon=0.1,
+                                        speed=0.07))
+        self.add_child(GoToTarget(threshold=1))
         self.add_child(DoDribbleKick(speed=MAX_SPEED/2,
-                                     dribble_threshold=120,
-                                     kick_threshold=120,
-                                     kick_angle=0.015))
+                                     dribble_threshold=90,
+                                     kick_threshold=90,
+                                     kick_angle=0.2))
         
     def setup(self):
         
@@ -155,7 +154,7 @@ class AlreadyLookingAtTarget(py_trees.behaviour.Behaviour):
         trans_pos = self.bb.new_dir
         new_orientation = self.wrap_to_pi(np.arctan2(trans_pos[1],trans_pos[0]))
         
-        self.bb.d_theta = new_orientation 
+        self.bb.d_theta = new_orientation - np.pi/2
         # print(self.bb.d_theta,new_orientation,self.bb.robot_pos[2])
 
         if abs(self.bb.d_theta) < self.epsilon: #smaller than threshold
@@ -177,6 +176,9 @@ class CalculateAngularVelocity(py_trees.behaviour.Behaviour):
         self.bb = py_trees.blackboard.Client(name=name)
         super().__init__(name)
     
+    def clamp (self,val):
+        return max(-self.speed, min(self.speed,val))
+
     def setup(self,logger=None):
         if logger is not None:
             self.logger = logger
@@ -189,9 +191,11 @@ class CalculateAngularVelocity(py_trees.behaviour.Behaviour):
         d_time = self.d_time
         d_theta = self.bb.d_theta 
         if abs(d_theta) > self.epsilon*2:
-            self.bb.w = d_theta/d_time * self.speed*5
+            w = d_theta * self.speed*5
         else:
-            self.bb.w = d_theta/d_time * self.speed *1       
+            w = d_theta * self.speed *1 
+
+        self.bb.w = self.clamp(w)      
         return py_trees.common.Status.SUCCESS
         
  
@@ -284,11 +288,12 @@ class CalculateLinearVelocity(py_trees.behaviour.Behaviour):
     def update(self) -> py_trees.common.Status:
         trans_pos = self.bb.trans_pos
         distance = self.bb.target_dist
+        speed = RobotMovement.threshold_zone(distance,MAX_SPEED)
 
         # print(distance)
         if distance > self.threshold:
-            self.bb.vy:float = (trans_pos[1] / distance) * MAX_SPEED
-            self.bb.vx:float = (trans_pos[0] / distance) * MAX_SPEED
+            self.bb.vy:float = (trans_pos[1] / distance) * speed
+            self.bb.vx:float = (trans_pos[0] / distance) * speed
 
             return py_trees.common.Status.SUCCESS
         # otherwise this is failure
@@ -317,14 +322,13 @@ class DoDribbleKick(py_trees.behaviour.Behaviour):
     def update(self):
         distance = self.bb.target_dist 
         angle_diff = self.bb.d_theta
-        print("distance",distance)
+        print("distance",distance, " angle ",angle_diff)
         self.bb.kick = 0
         self.bb.dribble = 0
-
-        if distance <= self.dribble_threshold and angle_diff <= self.kick_angle:
+        
+        if distance <= self.dribble_threshold and abs(angle_diff) <= self.kick_angle:
             # starts dribble
             self.bb.dribble = 1
-            self.bb.vx, self.bb.vy = RobotMovement.go_To_Target(target_pos=self.bb.trans_pos,speed=self.speed, stop_threshold=self.kick_threshold)
             self.logger.info("Dribble Ball")
             self.cnt +=1
                     
@@ -389,7 +393,7 @@ class SendRobotCommand(py_trees.behaviour.Behaviour):
         #     return py_trees.common.Status.SUCCESS
         
         packet = (command, self.runtime)
-        print(f"[SendRobotCommand] Sending command: {command}")
+        # print(f"[SendRobotCommand] Sending command: {command}")
         if not self.dispatcher_q.full():
             self.dispatcher_q.put(packet)
             self.last_command = command
