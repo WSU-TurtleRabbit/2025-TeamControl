@@ -111,7 +111,6 @@ class Dispatcher(BaseWorker):
             command = packet["command"]
             # if time.time() >= self.last_sent_time + 0.01:
             self.send_command(command)
-            self.last_sent_time = time.time()
             
     def send_command(self,command:RobotCommand):
         # this handles how you'd use different senders to send a command.
@@ -122,9 +121,12 @@ class Dispatcher(BaseWorker):
         if self.send_to_grSim is True:
             self.g_sender.send_robot_command(command,override_id=robot_dict["grSimID"])
             # print(f" RobotCommand has been sent to grSim : {robot_dict['grSimID']=} " )
-        if self.last_sent_time +0.1 < time.time():
+        # print (f"diff {self.last_sent_time + 0.001} < {str(time.time())}")
+
+        if self.last_sent_time + 0.1 < time.time():
             self.r_sender.send(command,robot_dict["ip"],robot_dict["port"])
-            print(f"Robot Command {shell_id} sent to  @ {robot_dict['ip'],robot_dict['port']}")
+
+            # print(f"Robot Command {shell_id} sent to  @ {robot_dict['ip'],robot_dict['port']}")
             self.last_sent_time = time.time()
 
     

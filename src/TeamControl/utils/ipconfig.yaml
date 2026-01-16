@@ -1,7 +1,7 @@
 yellow:
 
   A:
-    ip: "192.168.1.2"
+    ip: "192.168.1.4"
     port: 50514
     grSimID : 0
     shellID : 0
@@ -36,7 +36,7 @@ yellow:
     has_chip_kick: false
 
   F:
-    ip: "127.0.0.1"
+    ip: "192.168.1.4"
     port: 50514
     grSimID : 5
     shellID : 5
@@ -99,7 +99,7 @@ gc:
   multicast-group: '224.5.23.1'
   port: 10003 
 
-use_grSim_vision: true
+use_grSim_vision: false
 us_yellow: true
 us_positive: us_yellow
 send_to_grSim: true
