@@ -67,7 +67,7 @@ def main():
     robot_recv = Process(target=RobotRecv.run_worker, args=(is_running,logger))
     is_running.set()
     vision_wkr.start()
-    gc_wkr.start()
+    # gc_wkr.start()
     wmr.start()
     # goalie.start()
     dispatch_wkr.start()
@@ -98,7 +98,7 @@ def main():
 
     # Then wait for processes
     vision_wkr.join(timeout=5)
-    gc_wkr.join(timeout=5)
+    # gc_wkr.join(timeout=5)
     wmr.join(timeout=5)
     dispatch_wkr.join(timeout=5)
             
