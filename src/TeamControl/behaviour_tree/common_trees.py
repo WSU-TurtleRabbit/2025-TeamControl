@@ -126,7 +126,8 @@ class GetRobotIDPosition(py_trees.behaviour.Behaviour):
             # store position
             if isinstance(robot,int):
                 return py_trees.common.Status.FAILURE
-            self.bb.robot_pos = [robot.position[0],robot.position[1],robot.position[2]-np.pi/2]
+            # self.bb.robot_pos = [robot.position[0],robot.position[1],robot.position[2]-np.pi/2]
+            self.bb.robot_pos = [robot.position[0],robot.position[1],robot.position[2]]
             self.logger.info(f"[GetRobotIDPosition] Robot {self.robot_id} position: {robot.position}")
             return py_trees.common.Status.SUCCESS
         else:

@@ -63,7 +63,7 @@ class GoToBallSeq(py_trees.composites.Sequence):
         if self.turn_to_ball:
             # self.add_child(LookAtTarget(facing_pos=[343.981232,-26.9238338],speed=MAX_SPEED/2))
             self.add_child(LookAtTarget(epsilon=0.1,
-                                        speed=0.07))
+                                        speed=0.5))
         self.add_child(GoToTarget(threshold=1))
         self.add_child(DoDribbleKick(speed=MAX_SPEED/2,
                                      dribble_threshold=90,
@@ -154,7 +154,7 @@ class AlreadyLookingAtTarget(py_trees.behaviour.Behaviour):
         trans_pos = self.bb.new_dir
         new_orientation = self.wrap_to_pi(np.arctan2(trans_pos[1],trans_pos[0]))
         
-        self.bb.d_theta = new_orientation - np.pi/2
+        self.bb.d_theta = new_orientation  
         # print(self.bb.d_theta,new_orientation,self.bb.robot_pos[2])
 
         if abs(self.bb.d_theta) < self.epsilon: #smaller than threshold
@@ -332,7 +332,7 @@ class DoDribbleKick(py_trees.behaviour.Behaviour):
             self.logger.info("Dribble Ball")
             self.cnt +=1
                     
-        if self.cnt >=5:
+        if self.cnt >=2:
             self.bb.dribble = 0
             self.bb.kick = 1
             self.cnt = 0
