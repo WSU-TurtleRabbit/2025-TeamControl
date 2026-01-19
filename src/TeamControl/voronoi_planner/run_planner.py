@@ -9,9 +9,9 @@ import time
 
 class PathPlanner():
     # values are from before.
-    CLEARANCE = 100
-    d0 = 1000
-    N = 100
+    # CLEARANCE = 100
+    # d0 = 1000
+    # N = 100
     
     def __init__(self,world_model:wm,dispatcher_q,robot_id):
         self.isYellow = True
@@ -43,15 +43,15 @@ class PathPlanner():
             # follow waypoints here 
             if is_updated is True and self.frame is not None:
                 robot = self.frame.get_yellow_robots(isYellow=self.isYellow,robot_id=robot_id)
-                target_pos = self.frame.ball.position # or some position
+                target_pos = self.frame.ball.position # o1r some position
                 if isinstance(robot,int) or target_pos is None:
                     continue
                 robot_pos = robot.position
                 # print(f"{target_pos=}")
                 waypoints:list = self.pathplanning(robot_id=robot_id,target_pos=target_pos)
-                # print(f"{waypoints=}")
+                print(f"{waypoints=}")
                 # keep going to point until we see clear path
-                point = waypoints[0][1] if len(waypoints[0])>1 else None
+                point = waypoints[0][0] if len(waypoints[0])>0 else None
 
                 #DEBUG
                 # print("Robot pos:", robot_pos, "Next:", point)
@@ -62,6 +62,7 @@ class PathPlanner():
                 command = RobotCommand(robot_id, vx, vy, 0,0,0) 
                 runtime = 1 
                 self.output_q.put((command, runtime))
+                time.sleep(0.01)
                 # output to dispatcher for prototype 
                     # # assuming 0 angular velocity
                 # break
@@ -89,7 +90,7 @@ class PathPlanner():
         # start_pos = [x.xy_pos for x in self.frame.get_yellow_robots(isYellow=self.isYellow)]
         path_obs = [self.frame.get_yellow_robots(isYellow=self.isYellow,robot_id=robot_id).obstacle]
         # obstacles
-        our_robot_obs = [r.obstacle for r in self.frame.get_all_in_team_except(isYellow=self.isYellow, exclude=[])]
+        our_robot_obs = [r.obstacle for r in self.frame.get_all_in_team_except(isYellow=self.isYellow, exclude=[robot_id])]
         enemy_robot_obs = [r.obstacle for r in self.frame.get_all_in_team_except(isYellow=not self.isYellow, exclude=[])]
         all_obstacles = our_robot_obs + enemy_robot_obs
         # the destination point of these
@@ -101,12 +102,12 @@ class PathPlanner():
         
         self.p.update_obstacles(all_obstacles)
 
-        waypoints= self.p.generate_waypoints(our_robot_obs,goals,self.d0)
+        waypoints= self.p.generate_waypoints(path_obs,goals,0)
         # print(f"{waypoints=}")
         simplified_paths = []
         for i, (start, wp, goal) in enumerate(zip(path_obs, waypoints, goals)):
             full_path = [start.centre()] + wp
-            simple = self.p.simplify(full_path, self.CLEARANCE, [start.unum()])
+            simple = self.p.simplify(full_path, 0, [start.unum()])
             goal_is_safe = all(
                 not obs.is_point_inside(goal)
                 for obs in all_obstacles
@@ -122,10 +123,10 @@ class PathPlanner():
         print(f"{excution_time=}")
         
         # Print graph
-        # self.p.plot(our_robot_obs, goals, simplified_paths)
+        # self.p.plot(path_obs, goals, waypoints)
 
         # print(f"{simplified_paths=}")
-        return simplified_paths # return waypoints for the specified robot_id
+        return waypoints # return waypoints for the specified robot_id
 
 def run_planner(world_model:wm,dispatcher_q, robot_id):
     planner = PathPlanner(world_model,dispatcher_q,robot_id)

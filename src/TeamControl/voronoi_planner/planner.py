@@ -17,7 +17,7 @@ import time
 from TeamControl.voronoi_planner.obstacle import Obstacle
 
 THRESHOLD = 300
-CLEARANCE = 100
+CLEARANCE = 200
 
 
 def offset_goal_if_inside_obstacle(start, goal, obstacles, clearance, threshold=150):
@@ -173,7 +173,7 @@ class VoronoiPlanner:
         while i < len(path) - 1:
             next_i = i + 1
             for j in range(i + 2, len(path)):
-                if self.is_path_free(path[i], path[j], clearance, exclude_unums):
+                if self.is_path_free(path[i], path[j], CLEARANCE, exclude_unums):
                     next_i = j
             simplified.append(path[next_i])
             i = next_i
@@ -228,7 +228,7 @@ class VoronoiPlanner:
         plt.xlabel("X")
         plt.ylabel("Y")
         plt.grid(True)
-        # plt.show()
+        plt.show()
         
         # png 
         plt.savefig(filename, dpi=50, bbox_inches='tight')  
