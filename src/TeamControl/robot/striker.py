@@ -33,7 +33,7 @@ def run_simple_striker(dispatch_q, wm: WorldModel, robot_id=0, is_yellow=True):
 
     while True:
         frame = wm.get_latest_frame()
-        if frame is None or frame.ball is None:
+        if frame is None or frame.ball is None :
             time.sleep(0.02)
             continue
 
@@ -41,10 +41,11 @@ def run_simple_striker(dispatch_q, wm: WorldModel, robot_id=0, is_yellow=True):
 
         try:
             robot = frame.get_yellow_robots(isYellow=is_yellow, robot_id=robot_id)
+            # position = robot.position        
         except Exception:
             robot = None
 
-        if robot is None or robot.position is None:
+        if isinstance(robot,int) or robot.position is None:
             time.sleep(0.02)
             continue
 
@@ -132,4 +133,4 @@ def run_simple_striker(dispatch_q, wm: WorldModel, robot_id=0, is_yellow=True):
         )
 
         dispatch_q.put((cmd, 0.1))
-        time.sleep(0.02)
+        # time.sleep(0.02)

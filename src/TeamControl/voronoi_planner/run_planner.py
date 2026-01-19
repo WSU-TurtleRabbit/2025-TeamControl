@@ -13,13 +13,14 @@ class PathPlanner():
     d0 = 1000
     N = 100
     
-    def __init__(self,world_model:wm,planner_q):
+    def __init__(self,world_model:wm,dispatcher_q,robot_id):
         self.isYellow = True
+        self.robot_id = robot_id
         self.version = 0
         self.wm = world_model
         field_x, field_y = (9000,6000)
         self.p = VoronoiPlanner(xsize=field_x,ysize=field_y) #initialise planner
-        self.output_q = planner_q # output to behaviour tree or world model
+        self.output_q = dispatcher_q # output to behaviour tree or world model
         
     def check_wm_update(self):
     #get update from world model
@@ -36,7 +37,7 @@ class PathPlanner():
                 
     def running (self):
         ## this is for multi processing usage
-        robot_id = 5  # example for robot 0
+        robot_id = self.robot_id  # example for robot 0
         while True:
             is_updated = self.check_wm_update()
             # follow waypoints here 
@@ -126,6 +127,6 @@ class PathPlanner():
         # print(f"{simplified_paths=}")
         return simplified_paths # return waypoints for the specified robot_id
 
-def run_planner(world_model:wm,planner_q):
-    planner = PathPlanner(world_model,planner_q)
+def run_planner(world_model:wm,dispatcher_q, robot_id):
+    planner = PathPlanner(world_model,dispatcher_q,robot_id)
     planner.running()
