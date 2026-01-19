@@ -95,8 +95,8 @@ class RobotMovement:
         
         if distance < 70: #kicker zone
             return 0.0
-        if distance < 90: #dribble zone
-            return max_speed * 0.5
+        if distance < 400: #dribble zone
+            return max_speed * 0.2
         # if distance < 500: #normal zone
         #     return max_speed * 0.75
         return max_speed #fast zone
