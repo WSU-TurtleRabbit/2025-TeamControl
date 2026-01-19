@@ -351,11 +351,13 @@ class DoDribbleKick(py_trees.behaviour.Behaviour):
                 self.has_ball = True
 
                 print(f"time diff {self.start_time - time.time()}")
-            if self.start_time +0.5 <= time.time():
+            if self.start_time + 0.5 <= time.time():
                 self.logger.info("KICK")
                 self.start_time = 0
                 dribble = 0 
                 kick = 1 
+                self.has_ball = False
+
         else :
             dribble = 0
             self.start_time = 0
