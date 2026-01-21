@@ -113,7 +113,7 @@ class RobotMovement:
         
 
         dist = math.hypot(target_pos[0], target_pos[1])
-        speed = RobotMovement.threshold_zone(dist)
+        speed = RobotMovement.threshold_zone(dist,speed)
         
         
         if dist<=0.0:

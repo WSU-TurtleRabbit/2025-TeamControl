@@ -60,7 +60,7 @@ def main():
     bt = Process(target=run_bt_process, args=(is_running,wm,dispatch_q,) )
     striker = Process(target=run_simple_striker, args=(dispatch_q, wm, 0, preset.us_yellow))
     dispatch_wkr = Process(target=Dispatcher.run_worker, args=(is_running,logger,dispatch_q,preset,),)
-    planner_wkr = Process(target=run_planner, args=(wm,dispatch_q,5))
+    planner_wkr = Process(target=run_planner, args=(wm,dispatch_q,0))
     planner_wkr1 = Process(target=run_planner, args=(wm,dispatch_q,1))
 
     # goalie = Process(target=run_goalie,args=(dispatch_q,wm,1,preset.us_yellow))
@@ -108,7 +108,7 @@ def main():
     wmr.join(timeout=5)
     dispatch_wkr.join(timeout=5)
             
-    bt.join()
+    # bt.join()
     robot_recv.join()
     # striker.join()
     # chaser.join()   
