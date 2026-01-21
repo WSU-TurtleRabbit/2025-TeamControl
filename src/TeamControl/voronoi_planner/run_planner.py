@@ -49,9 +49,9 @@ class PathPlanner():
                 robot_pos = robot.position
                 # print(f"{target_pos=}")
                 waypoints:list = self.pathplanning(robot_id=robot_id,target_pos=target_pos)
-                print(f"{waypoints[0]=}, {robot_pos=}, {target_pos=}")
+                # print(f"{waypoints[0]=}, {robot_pos=}, {target_pos=}")
                 # keep going to point until we see clear path
-                point = waypoints[0][1] if len(waypoints[0])>1 else None 
+                point = waypoints[0][1] if len(waypoints[0])>1 else [0,0]
                 print(f" POINT ? ? {point}")
                 #DEBUG
                 # print("Robot pos:", robot_pos, "Next:", point)
@@ -59,7 +59,7 @@ class PathPlanner():
 
 
                 
-                vx,vy,w= RobotMovement.velocity_to_target(robot_pos=robot_pos,target=point,speed=5)
+                vx,vy,w= RobotMovement.velocity_to_target(robot_pos=robot_pos,target=point,speed=1)
                 # print(vx,vy)
                 command = RobotCommand(robot_id, vx, vy, 0,0,0) 
                 runtime = 1 
@@ -85,18 +85,11 @@ class PathPlanner():
         Returns:
             list: list of waypoints (for this robot_id)
         """
-        # planner = VoronoiPlanner(xsize=x,ysize=y) # not recommended
-
-        # the start positions of our robots
-
-        # start_pos = [x.xy_pos for x in self.frame.get_yellow_robots(isYellow=self.isYellow)]
         path_obs = [self.frame.get_yellow_robots(isYellow=self.isYellow,robot_id=robot_id).obstacle]
         # obstacles
         our_robot_obs = [r.obstacle for r in self.frame.get_all_in_team_except(isYellow=self.isYellow, exclude=[])]
         enemy_robot_obs = [r.obstacle for r in self.frame.get_all_in_team_except(isYellow=not self.isYellow, exclude=[])]
         all_obstacles = our_robot_obs + enemy_robot_obs
-        # the destination point of these
-        # goals = [target_pos,target_pos,target_pos,target_pos,target_pos]
         goals = [target_pos]
         print("number of Obstacles:",len(all_obstacles))
 
