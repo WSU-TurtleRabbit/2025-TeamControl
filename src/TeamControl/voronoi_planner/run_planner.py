@@ -49,15 +49,17 @@ class PathPlanner():
                 robot_pos = robot.position
                 # print(f"{target_pos=}")
                 waypoints:list = self.pathplanning(robot_id=robot_id,target_pos=target_pos)
-                print(f"{waypoints=}")
+                print(f"{waypoints[0]=}, {robot_pos=}, {target_pos=}")
                 # keep going to point until we see clear path
-                point = waypoints[0][0] if len(waypoints[0])>0 else None
-
+                point = waypoints[0][1] if len(waypoints[0])>1 else None 
+                print(f" POINT ? ? {point}")
                 #DEBUG
                 # print("Robot pos:", robot_pos, "Next:", point)
+                # if point is not None:
+
 
                 
-                vx,vy,w= RobotMovement.velocity_to_target(robot_pos=robot_pos,target=point,speed=0.05)
+                vx,vy,w= RobotMovement.velocity_to_target(robot_pos=robot_pos,target=point,speed=5)
                 # print(vx,vy)
                 command = RobotCommand(robot_id, vx, vy, 0,0,0) 
                 runtime = 1 
@@ -90,7 +92,7 @@ class PathPlanner():
         # start_pos = [x.xy_pos for x in self.frame.get_yellow_robots(isYellow=self.isYellow)]
         path_obs = [self.frame.get_yellow_robots(isYellow=self.isYellow,robot_id=robot_id).obstacle]
         # obstacles
-        our_robot_obs = [r.obstacle for r in self.frame.get_all_in_team_except(isYellow=self.isYellow, exclude=[robot_id])]
+        our_robot_obs = [r.obstacle for r in self.frame.get_all_in_team_except(isYellow=self.isYellow, exclude=[])]
         enemy_robot_obs = [r.obstacle for r in self.frame.get_all_in_team_except(isYellow=not self.isYellow, exclude=[])]
         all_obstacles = our_robot_obs + enemy_robot_obs
         # the destination point of these
@@ -101,32 +103,16 @@ class PathPlanner():
         start_time = time.time()
         
         self.p.update_obstacles(all_obstacles)
-
-        waypoints= self.p.generate_waypoints(path_obs,goals,0)
-        # print(f"{waypoints=}")
-        simplified_paths = []
-        for i, (start, wp, goal) in enumerate(zip(path_obs, waypoints, goals)):
-            full_path = [start.centre()] + wp
-            simple = self.p.simplify(full_path, 0, [start.unum()])
-            goal_is_safe = all(
-                not obs.is_point_inside(goal)
-                for obs in all_obstacles
-            )
-
-            if goal_is_safe and not np.allclose(simple[-1], goal):
-                simple.append(goal)
-
-            simplified_paths.append(simple)
-        
+        path = self.p.do_plan(starting_obs=path_obs,ending_points=goals)
         end_time = time.time()
         excution_time = end_time - start_time
         print(f"{excution_time=}")
         
         # Print graph
-        # self.p.plot(path_obs, goals, waypoints)
+        self.p.plot(path_obs, goals, path)
 
         # print(f"{simplified_paths=}")
-        return waypoints # return waypoints for the specified robot_id
+        return path # return all waypoints
 
 def run_planner(world_model:wm,dispatcher_q, robot_id):
     planner = PathPlanner(world_model,dispatcher_q,robot_id)
