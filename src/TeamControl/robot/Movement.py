@@ -15,9 +15,9 @@ class RobotMovement:
         '''
         Gets the velocity required for the robot go to position and trun to target
         '''
-        if robot_pos is None:
-            print("Robot pos is none")
-            pass
+        if robot_pos is None or target is None:
+            raise ValueError ("Robot pos or Target is None")
+            # pass
         
         transTarget = world2robot(robot_pos, target)
         vx, vy = cls.go_To_Target(transTarget, stop_threshold = stop_threshold,speed=speed)
