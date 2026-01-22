@@ -13,17 +13,18 @@ from matplotlib.patches import Circle
 from scipy.spatial import Voronoi, voronoi_plot_2d
 import networkx as nx
 import time
+import sys
 
 from TeamControl.voronoi_planner.obstacle import Obstacle
 
 # CLEARANCE is the width of the path taken by the robot
 CLEARANCE = 200
 # additional radius to the obstacle
-BUFFER_ZONE = 40
+BUFFER_ZONE = 50
 # THRESHOLD is for logical decision making (decision boundary)
 THRESHOLD = CLEARANCE + BUFFER_ZONE
 
-def offset_goal_if_inside_obstacle(start_pos:tuple[float], goal_pos:tuple[float], obstacles, threshold=THRESHOLD):
+def offset_goal_if_inside_obstacle(start_pos:tuple[float], goal_pos:tuple[float], obstacles, threshold=THRESHOLD,buffer=BUFFER_ZONE):
     '''
     clearance not used, therefore none.
     '''
@@ -31,7 +32,7 @@ def offset_goal_if_inside_obstacle(start_pos:tuple[float], goal_pos:tuple[float]
     goal_pos = np.array(goal_pos)
 
     for obs in obstacles:
-        if obs.is_point_inside(goal_pos):
+        if obs.is_point_inside(goal_pos,buffer):
             direction = goal_pos - start_pos
             norm = np.linalg.norm(direction)
             if norm == 0:
@@ -51,46 +52,64 @@ class VoronoiPlanner:
         if obstacles is not None:
             self.update_obstacles(obstacles)
 
-    def do_plan(self,starting_obs,ending_points):
+    def do_plan(self,starting_obs,ending_points,all_obstacles):
         # main sequence for pathplanner :
-        if self.graph is None or self.obstacles is None:
-            raise AttributeError("NEED TO UPDATE OBSTACLES FIRST")
-            return
-        planner_points = self.generate_waypoints(starts=starting_obs,goals=ending_points,stop_threshold=THRESHOLD)                
+        self.update_obstacles(obstacles=all_obstacles,exclude=starting_obs)
+        # if self.graph is None or self.obstacles is None:
+        #     raise AttributeError("NEED TO UPDATE OBSTACLES FIRST")
+            # return
+        planner_points = self.generate_waypoints(starts=starting_obs,goals=ending_points,threshold=THRESHOLD)                
         shortcuts = self.find_shortcuts(starting_obs=starting_obs,
                                         generated_waypoints=planner_points,
                                         ending_points=ending_points,
                                         clearance=THRESHOLD)
+        
+
         return shortcuts
 
-    def find_shortcuts(self,starting_obs,generated_waypoints,ending_points,clearance=CLEARANCE):
+    def find_shortcuts(self,starting_obs,generated_waypoints,ending_points,clearance,buffer=BUFFER_ZONE):
         simplified_paths = []
-        for i, (start, wp, goal) in enumerate(zip(starting_obs, generated_waypoints, ending_points)):
-            full_path = [start.centre()] + wp # combine the waypoints with starting point
-            # generate the simple point
-            simple = self.simplify(full_path, clearance, [start.unum()])
+        for start, wp, goal in zip(starting_obs, generated_waypoints, ending_points):
+            full_path = [start.centre()] + wp
+            if start.isYellow is True:
+                exclude_yellow = [start.unum()]
+                exclude_blue = []
+            else:
+                exclude_blue = [start.unum()]
+                exclude_yellow = []
+
+            # simplify using proper segment collision check
+            simple = self.simplify(full_path, clearance,exclude_yellow=exclude_yellow,exclude_blue=exclude_blue )
+
+            # keep only points that are safe (NOTE: needs clearance-aware check)
+            sp = []
             for point in simple:
-               sp = [not obs.is_point_inside(point) for obs in self.obstacles]
-            # goal_is_safe = all(
-            #     not obs.is_point_inside(goal)
-            #     for obs in self.obstacles
-            # )
-            if goal_is_safe and not np.allclose(simple[-1], [goal]):
-               sp.append(goal)
-            # print(f"{simple}")
-            # save it.
+                if all(not obs.is_point_inside(point,buffer) for obs in self.obstacles):
+                    sp.append(point)
+                    print(f"86 {sp}, {simple}")
+
+            # goal safety check (also needs clearance-aware check)
+            goal_is_safe = all(not obs.is_point_inside(goal,buffer) for obs in self.obstacles)
+            if goal_is_safe:
+                if (len(sp) == 0) or (not np.allclose(sp[-1], goal)):
+                    sp.append(goal)
+            # if goal_is_safe and not np.allclose(sp[-1], goal):
+            #     sp.append(goal)
+
             simplified_paths.append(sp)
+            print(f"87 simplified path {simplified_paths}")
 
         return simplified_paths
         
 
     
     # Fixes objects being too close or overlapping
-    def cluster_obstacles(self, obstacles, clearance=CLEARANCE):
+    def cluster_obstacles(self, obstacles, clearance=CLEARANCE,exclude=[]):
         """
         Merge obstacles that are too close (overlapping or nearly overlapping).
         Produces a single larger obstacle for each cluster.
         """
+            
         clusters = []
         used = set()
         radius = obstacles[0].radius
@@ -105,6 +124,8 @@ class VoronoiPlanner:
 
             for j, o2 in enumerate(obstacles):
                 if j in used:
+                    continue
+                if o2 in exclude:
                     continue
 
                 d = np.linalg.norm(o.centre() - o2.centre())
@@ -140,7 +161,7 @@ class VoronoiPlanner:
     #         self.voronoi_vertices = np.empty((0, 2))
     #         self.graph = nx.Graph()
 
-    def update_obstacles(self, obstacles: list):
+    def update_obstacles(self, obstacles: list,exclude=[]):
         """
         Update the list of obstacles, cluster overlapping/close obstacles,
         and rebuild the Voronoi diagram and graph.
@@ -153,7 +174,7 @@ class VoronoiPlanner:
         self.obstacles = obstacles
 
         # Step 2: cluster overlapping or close obstacles
-        self.obstacles = self.cluster_obstacles(self.obstacles)
+        self.obstacles = self.cluster_obstacles(self.obstacles,exclude=exclude)
 
         # Step 3: get obstacle centers for Voronoi seeds
         self.obstacle_centres = [o.centre() for o in self.obstacles]
@@ -170,7 +191,7 @@ class VoronoiPlanner:
             self.graph = nx.Graph()
 
 
-    def build_voronoi_graph(self,clearance=THRESHOLD):
+    def build_voronoi_graph(self):
         graph = nx.Graph()
         for v1, v2 in self.voronoi_diagram.ridge_vertices:
             if v1 == -1 or v2 == -1:
@@ -178,7 +199,7 @@ class VoronoiPlanner:
             p1, p2 = self.voronoi_vertices[v1], self.voronoi_vertices[v2]
             if not self.is_in_field(p1) or not self.is_in_field(p2):
                 continue
-            graph.add_edge(v1, v2, weight=np.linalg.norm(p1 - p2),clearance=clearance)
+            graph.add_edge(v1, v2)
         return graph
 
     def is_in_field(self, point):
@@ -195,13 +216,18 @@ class VoronoiPlanner:
         index = np.argmin(distances)
         return self.voronoi_vertices[index], index
 
-    def is_path_free(self, start, goal, clearance, exclude_unums=[]):
+    def is_path_free(self, start, goal, clearance, exclude_yellow=[],exclude_blue=[]):
+        """
+        exclude : obstacle object
+        """
         clearance = clearance + BUFFER_ZONE
         for obs in self.obstacles:
-            if obs.unum() in exclude_unums:
+            if (obs.isYellow is True and obs.unum() in exclude_yellow) or (obs.isYellow is False and obs.unum() in exclude_blue):
+                print(f"skipping {obs.unum()} {obs.isYellow}")
                 continue
+          
             if obs.intersects_line(start, goal, clearance):
-                print(f"[DEBUG] Path blocked between {start} -> {goal} by obstacle {obs.unum()}")
+                print(f"[DEBUG] Path blocked between {start} -> {goal} by obstacle {obs.unum()} {obs.isYellow}")
                 return False
         return True
 
@@ -220,7 +246,8 @@ class VoronoiPlanner:
             print(f"[DEBUG] No path between {start} and {goal}")
             return []
 
-    def simplify(self, path, clearance, exclude_unums=[]):
+    def simplify(self, path, clearance, exclude_yellow=[],exclude_blue=[]):
+        """ excluded= obstacles"""
         if len(path) < 3: # already simple enough
             return path
         simplified = [path[0]]
@@ -228,31 +255,43 @@ class VoronoiPlanner:
         while i < len(path) - 1:
             next_i = i + 1
             for j in range(i + 2, len(path)):
-                if self.is_path_free(path[i], path[j], clearance, exclude_unums):
+                if self.is_path_free(path[i], path[j], clearance,
+                                     exclude_yellow=exclude_yellow, exclude_blue=exclude_blue):
+                    print(f"258 PATH IS FREE : {path[i]=},{path[j]=},{clearance}")
                     next_i = j
+                    continue
             simplified.append(path[next_i])
+            print(simplified)
             i = next_i
         return simplified
 
-    def generate_waypoints(self, starts:list[Obstacle], goals:tuple[float], buffer=BUFFER_ZONE, stop_threshold=THRESHOLD)-> list[float]:
+    def generate_waypoints(self, starts:list[Obstacle], goals:tuple[float], buffer=BUFFER_ZONE,threshold=THRESHOLD)-> list[float]:
         waypoints = []
         for start, goal in zip(starts, goals):
-            exclude = [start.unum()]
+            if start.isYellow is True:
+                exclude_yellow = [start.unum()]
+                exclude_blue = []
+            else:
+                exclude_blue = [start.unum()]
+                exclude_yellow = []
+            
             # adjust the individual goal first 
-            adjusted_goal = offset_goal_if_inside_obstacle(
-                start.centre(), goal, self.obstacles, start.radius+buffer , threshold=stop_threshold
+            goal = offset_goal_if_inside_obstacle(
+                start.centre(), goal, self.obstacles, start.radius+buffer 
             )
             # check if there's a direct free path
-            if self.is_path_free(start.centre(), adjusted_goal, start.radius+buffer , exclude):
+            if self.is_path_free(start.centre(), goal,THRESHOLD  ,
+                                 exclude_yellow=exclude_yellow,exclude_blue=exclude_blue):
                 # waypoints[start.unum()] = [goal] # dict
-                waypoints.append([adjusted_goal])
+                print(f"path is free 253")
+                waypoints.append([goal])
                 continue # done with this robot, skip
             
             # otherwise do the plan
-            path = self.plan(start.centre(), adjusted_goal)
+            path = self.plan(start.centre(), goal)
             # print(f" 250 {path=}")
-            if path and not np.allclose(path[-1], adjusted_goal):
-                path.append(adjusted_goal)
+            if path and not np.allclose(path[-1], goal):
+                path.append(goal)
             
             # saves this set of path
             waypoints.append(path)
@@ -263,7 +302,7 @@ class VoronoiPlanner:
         filename = "path"
         fig, ax = plt.subplots(figsize=(10, 10))
         if self.voronoi_diagram:
-            voronoi_plot_2d(self.voronoi_diagram, ax=ax, show_vertices=False, show_points=False)
+            voronoi_plot_2d(self.voronoi_diagram, ax=ax, show_vertices=True, show_points=True)
 
         ax.set_xlim((-self.xsize), self.xsize)
         ax.set_ylim((-self.ysize), self.ysize)
