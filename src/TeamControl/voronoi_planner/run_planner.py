@@ -51,7 +51,7 @@ class PathPlanner():
                 waypoints:list = self.pathplanning(robot_id=robot_id,target_pos=target_pos)
                 # print(f"{waypoints[0]=}, {robot_pos=}, {target_pos=}")
                 # keep going to point until we see clear path
-                point = waypoints[0][1] if len(waypoints[0])>1 else [0,0]
+                point = waypoints[0][1] if len(waypoints[0])>1 else None
                 print(f" POINT ? ? {point}")
                 #DEBUG
                 # print("Robot pos:", robot_pos, "Next:", point)
@@ -59,12 +59,12 @@ class PathPlanner():
 
 
                 
-                vx,vy,w= RobotMovement.velocity_to_target(robot_pos=robot_pos,target=point,speed=1)
+                # vx,vy,w= RobotMovement.velocity_to_target(robot_pos=robot_pos,target=point,speed=1)
                 # print(vx,vy)
-                command = RobotCommand(robot_id, vx, vy, 0,0,0) 
-                runtime = 1 
-                self.output_q.put((command, runtime))
-                time.sleep(0.01)
+                # command = RobotCommand(robot_id, vx, vy, 0,0,0) 
+                # runtime = 1 
+                # self.output_q.put((command, runtime))
+                # time.sleep(0.01)
                 # output to dispatcher for prototype 
                     # # assuming 0 angular velocity
                 # break
@@ -95,8 +95,8 @@ class PathPlanner():
 
         start_time = time.time()
         
-        self.p.update_obstacles(all_obstacles)
-        path = self.p.do_plan(starting_obs=path_obs,ending_points=goals)
+        path = self.p.do_plan(starting_obs=path_obs,ending_points=goals,all_obstacles=all_obstacles)
+        print(f"100 {path=}")
         end_time = time.time()
         excution_time = end_time - start_time
         print(f"{excution_time=}")
