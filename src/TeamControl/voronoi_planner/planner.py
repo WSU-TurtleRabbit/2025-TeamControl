@@ -23,7 +23,7 @@ BUFFER_ZONE = 40
 # THRESHOLD is for logical decision making (decision boundary)
 THRESHOLD = CLEARANCE + BUFFER_ZONE
 
-def offset_goal_if_inside_obstacle(start_pos:tuple[float], goal_pos:tuple[float], obstacles, clearance = None, threshold=THRESHOLD):
+def offset_goal_if_inside_obstacle(start_pos:tuple[float], goal_pos:tuple[float], obstacles, threshold=THRESHOLD):
     '''
     clearance not used, therefore none.
     '''
@@ -59,7 +59,8 @@ class VoronoiPlanner:
         planner_points = self.generate_waypoints(starts=starting_obs,goals=ending_points,stop_threshold=THRESHOLD)                
         shortcuts = self.find_shortcuts(starting_obs=starting_obs,
                                         generated_waypoints=planner_points,
-                                        ending_points=ending_points)
+                                        ending_points=ending_points,
+                                        clearance=THRESHOLD)
         return shortcuts
 
     def find_shortcuts(self,starting_obs,generated_waypoints,ending_points,clearance=CLEARANCE):
@@ -68,16 +69,17 @@ class VoronoiPlanner:
             full_path = [start.centre()] + wp # combine the waypoints with starting point
             # generate the simple point
             simple = self.simplify(full_path, clearance, [start.unum()])
-            
-            goal_is_safe = all(
-                not obs.is_point_inside(goal)
-                for obs in self.obstacles
-            )
+            for point in simple:
+               sp = [not obs.is_point_inside(point) for obs in self.obstacles]
+            # goal_is_safe = all(
+            #     not obs.is_point_inside(goal)
+            #     for obs in self.obstacles
+            # )
             if goal_is_safe and not np.allclose(simple[-1], [goal]):
-               simple.append(goal)
+               sp.append(goal)
             # print(f"{simple}")
             # save it.
-            simplified_paths.append(simple)
+            simplified_paths.append(sp)
 
         return simplified_paths
         
@@ -168,7 +170,7 @@ class VoronoiPlanner:
             self.graph = nx.Graph()
 
 
-    def build_voronoi_graph(self,clearance=CLEARANCE):
+    def build_voronoi_graph(self,clearance=THRESHOLD):
         graph = nx.Graph()
         for v1, v2 in self.voronoi_diagram.ridge_vertices:
             if v1 == -1 or v2 == -1:
@@ -193,7 +195,8 @@ class VoronoiPlanner:
         index = np.argmin(distances)
         return self.voronoi_vertices[index], index
 
-    def is_path_free(self, start, goal, clearance = CLEARANCE, exclude_unums=[]):
+    def is_path_free(self, start, goal, clearance, exclude_unums=[]):
+        clearance = clearance + BUFFER_ZONE
         for obs in self.obstacles:
             if obs.unum() in exclude_unums:
                 continue
