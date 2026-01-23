@@ -22,8 +22,6 @@ KICK_COOLDOWN = 0.4
 MAX_W = 2.0
 FALLBACK_FIELD_LEN = 9000.0
 
-test = 0.0
-
 def clamp(x, lo, hi):
     return max(lo, min(hi, x))
 
@@ -33,11 +31,12 @@ def run_simple_striker(dispatch_q, wm: WorldModel, robot_id=0, is_yellow=True):
     kick_until = 0.0
 
     while True:
-        # time.sleep(0.5)
-        
-        print(TEST + 1)
-        TEST = TEST + 1
+        # 23.01.2026
+        # robot.position and other robot-ball observations are not updating...
+        # hence angle_to_ball is constant and robot spins in place
+        # ideally the angle should update as the robot moves
 
+        # time.sleep(0.5)
         frame = wm.get_latest_frame()
         if frame is None or frame.ball is None :
             time.sleep(0.02)
@@ -103,7 +102,7 @@ def run_simple_striker(dispatch_q, wm: WorldModel, robot_id=0, is_yellow=True):
             # for multiplier in range(1, 3):
                 # if abs(angle_to_ball) < math.pi / 2:
                     #mult = multiplier
-            # w = clamp(mult * angle_to_ball, -MAX_W, MAX_W)
+            w = clamp(mult * angle_to_ball, -MAX_W, MAX_W)
             # print("[ANGULAR VELOCITY] W = ", w)
 
         # =========================
