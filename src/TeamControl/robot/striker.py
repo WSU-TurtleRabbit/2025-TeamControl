@@ -22,6 +22,7 @@ KICK_COOLDOWN = 0.4
 MAX_W = 2.0
 FALLBACK_FIELD_LEN = 9000.0
 
+test = 0.0
 
 def clamp(x, lo, hi):
     return max(lo, min(hi, x))
@@ -32,6 +33,11 @@ def run_simple_striker(dispatch_q, wm: WorldModel, robot_id=0, is_yellow=True):
     kick_until = 0.0
 
     while True:
+        # time.sleep(0.5)
+        
+        print(TEST + 1)
+        TEST = TEST + 1
+
         frame = wm.get_latest_frame()
         if frame is None or frame.ball is None :
             time.sleep(0.02)
@@ -66,11 +72,13 @@ def run_simple_striker(dispatch_q, wm: WorldModel, robot_id=0, is_yellow=True):
         goal_pos = (-our_goal_x, 0.0)
 
         # -------- robot-frame observations --------
+        # print("\n\nRobot position = ", robot.position)
         ball_rel = world2robot(robot_pos, ball_pos)
         goal_rel = world2robot(robot_pos, goal_pos)
 
         dist_to_ball = math.hypot(ball_rel[0], ball_rel[1])
         angle_to_ball = math.atan2(ball_rel[1], ball_rel[0])
+        # print("ball_rel[0]: ", ball_rel[0], "\tball_rel[1]: ", ball_rel[1])
         angle_to_goal = math.atan2(goal_rel[1], goal_rel[0])
 
         ball_centered = abs(angle_to_ball) < BALL_CENTER_TOL
@@ -86,26 +94,37 @@ def run_simple_striker(dispatch_q, wm: WorldModel, robot_id=0, is_yellow=True):
         # 1) GO TO BALL
         # =========================
         if dist_to_ball > CAPTURE_DISTANCE:
+            # time.sleep(0.02)
+            # DEBUG
+            # print("Going to ball...")
+            # print("[ANGLE TO BALL] Angle to ball: ", angle_to_ball)
             vx = 0.8
-            w = clamp(2.0 * angle_to_ball, -MAX_W, MAX_W)
+            mult = 2.0
+            # for multiplier in range(1, 3):
+                # if abs(angle_to_ball) < math.pi / 2:
+                    #mult = multiplier
+            # w = clamp(mult * angle_to_ball, -MAX_W, MAX_W)
+            # print("[ANGULAR VELOCITY] W = ", w)
 
         # =========================
         # 2) CAPTURE / DRIBBLE
         # =========================
         else:
+            # DEBUG
+            print("Capturing ball...")
             # keep ball centered first
             if not ball_centered:
                 vx = 0.3
-                w = clamp(2.2 * angle_to_ball, -MAX_W, MAX_W)
+                # w = clamp(2.2 * angle_to_ball, -MAX_W, MAX_W)
 
             # face goal
             else:
                 if abs(angle_to_goal) > GOAL_ALIGN_TOL:
                     vx = 0.0
-                    w = clamp(2.0 * angle_to_goal, -MAX_W, MAX_W)
+                    # w = clamp(2.0 * angle_to_goal, -MAX_W, MAX_W)
                 else:
                     vx = 0.4
-                    w = clamp(1.2 * angle_to_goal, -MAX_W, MAX_W)
+                    # w = clamp(1.2 * angle_to_goal, -MAX_W, MAX_W)
 
             # =========================
             # 3) KICK
