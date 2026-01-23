@@ -38,7 +38,8 @@ This document explains:
 
 ## Setup Steps
 
-### 1. Set a Static IP Address (Ubuntu)
+### 1. Set a Static IP Address
+#### Ubuntu
 
 1. Connect your laptop to the **Ethernet switch**
 2. Open **Settings → Network**
@@ -56,6 +57,20 @@ This document explains:
 - Netmask: `255.255.255.0`
 
 > ⚠️ Do **not** use the same IP address as another team or the grSim PC.
+
+
+
+#### Windows
+Go to your ethernet settings:
+<img src="images/windows_ip1.png" alt="Windows IPv4 Setup" width="800"/>
+Change your IP settings to this:
+
+<p align="center">
+  <img src="images/windows_ip_2.png" alt="Windows IPv4 Setup" width="400"/>
+</p>
+
+#### Mac
+The approach for Mac is very similar to the two above.
 
 ---
 
@@ -79,7 +94,7 @@ vision_port = 10020
 #### Command Configuration
 In `sandbox_process.py`, update the simulator IP and command port:
 ```python
-SIM_IP = "192.168.178.2" #grSim IP
+SIM_IP = "192.168.178.2" #IP address of the grSim PC
 CMD_LISTEN_PORT = 20011
 ```
 
@@ -90,24 +105,32 @@ group: str = "224.5.23.2"
 ```
 If you never changed this before, it should already be correct.
 
+### 3. Turn off your Wifi
+We advise you to turn off your Wi-Fi as this can hinder communication.
 
 ### Check Connection
 1. **Basic Connectivity Test**
-From your laptop:
-```ping 192.168.178.2```
-You should see replies from the grSim PC.
+   
+    From your laptop:
+    ```ping 192.168.178.2```
 
-2. **Check Sending Movement Commands**
-You can test command sending in two ways.
+    You should see replies from the grSim PC. If not, there is probably an issue with either your network or the grSim PC's network.
 
-*Option A*: grSim Client
-Settings for the grSim client:
-- Simulator Address: 192.168.178.2
-- Simulator Port: 20011
-Try moving a robot by setting a robot id, some velocity then click "Connect" and "Send".
+1. **Check Sending Movement Commands**
+  
+    You can test command sending in two ways.
 
-*Option B*: Your Code
-Run your sandbox process (e.g. ball following).
+    *Option A*: **Using the grSim client**
+
+    Settings for the grSim client:
+   - Simulator Address: 192.168.178.2
+   - Simulator Port: 20011
+  
+    Try moving a robot by setting a robot id, some velocity then click "Connect" and "Send".
+
+    *Option B*: **Using your code**
+
+    Run your sandbox process (e.g. ball following).
 
 If command sending works:
 - Robots move in grSim
@@ -119,7 +142,7 @@ If robots do not move:
 
 
 ### Troubleshooting
-Useful Debugging Commands (Ubuntu)
+Useful Debugging Commands for Ubuntu
 
 #### Network Basics
 Show your IP address:
@@ -182,18 +205,26 @@ Check outgoing command packets:
 - Cause: No multicast route
 - Fix: Open a route `sudo ip route add 224.0.0.0/4 dev <interface-name>`. Then restart grSim.
 
-#### Vision Data Not Received, But Commands Work
+#### Vision Data Not Received, But Movement Commands Work
+Go to `src/TeamControl/network/receiver.py` and change this section:
 
-Possible causes:
+```python
+def _add_group(self):
+        """adds group to multicast socket"""
+        self.is_ready = False
+        mreq = struct.pack("=4sl", socket.inet_aton(self.group), socket.INADDR_ANY)
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        self.is_ready = True
+```
 
-Multicast disabled on interface
+To this:
 
-Missing multicast route
-
-Wrong interface selected
-
-Check:
-
-ip maddr show
-ip route get 224.5.23.2
-
+```python
+def _add_group(self):
+        """adds group to multicast socket"""
+        self.is_ready = False
+        user_device_interface_ip = "192.168.178.3" # or whatever your IP address is
+        mreq = struct.pack("=4s4s", socket.inet_aton(self.group), socket.inet_aton(user_device_interface_ip))
+        self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        self.is_ready = True
+```
