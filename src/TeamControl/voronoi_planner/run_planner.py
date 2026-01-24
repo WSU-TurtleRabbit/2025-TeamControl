@@ -6,6 +6,10 @@ from TeamControl.robot.Movement import RobotMovement
 from TeamControl.network.robot_command import RobotCommand
 import numpy as np
 import time
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+plt.ion()
 
 class PathPlanner():
     # values are from before.
@@ -21,7 +25,7 @@ class PathPlanner():
         field_x, field_y = (9000,6000)
         self.p = VoronoiPlanner(xsize=field_x,ysize=field_y) #initialise planner
         self.output_q = dispatcher_q # output to behaviour tree or world model
-        
+
     def check_wm_update(self):
     #get update from world model
         # updates from world model if this is active
@@ -38,6 +42,10 @@ class PathPlanner():
     def running (self):
         ## this is for multi processing usage
         robot_id = self.robot_id  # example for robot 0
+        fig, ax = plt.subplots()
+        ax.set_ylim(-2500, 2500)
+        ax.set_xlim(-1400, 1400)
+        plt.show(block=False)
         while True:
             is_updated = self.check_wm_update()
             # follow waypoints here 
@@ -46,7 +54,6 @@ class PathPlanner():
                 target_pos = self.frame.ball.position # o1r some position
                 if isinstance(robot,int) or target_pos is None:
                     continue
-                robot_pos = robot.position
                 # print(f"{target_pos=}")
                 waypoints:list = self.pathplanning(robot_id=robot_id,target_pos=target_pos)
                 # print(f"{waypoints[0]=}, {robot_pos=}, {target_pos=}")
@@ -56,9 +63,28 @@ class PathPlanner():
                 #DEBUG
                 # print("Robot pos:", robot_pos, "Next:", point)
                 # if point is not None:
+                ax.clear()
+                ax.set_ylim(-2500, 2500)
+                ax.set_xlim(-1400, 1400)
 
+                waypoint_array = np.array(waypoints)
+                if waypoint_array.size:
+                    ax.scatter(waypoint_array[:,0], waypoint_array[:,1], s=0.1, c='g', alpha=0.5)
 
-                
+                yellow_robots = self.frame.get_yellow_robots()
+                yellow_positions = np.array([[pos[0], pos[1]] for pos in (r.position for r in yellow_robots) if pos is not None])
+                if yellow_positions.size:
+                    ax.scatter(yellow_positions[:,0], yellow_positions[:,1], s=10, c='y', alpha=0.7)
+
+                blue_robots = self.frame.get_yellow_robots(False)
+                blue_positions = np.array([[pos[0], pos[1]] for pos in (r.position for r in blue_robots) if pos is not None])
+                if blue_positions.size:
+                    ax.scatter(blue_positions[:,0], blue_positions[:,1], s=10, c='b', alpha=0.7)
+
+                fig.canvas.draw()
+                fig.canvas.flush_events()
+                plt.pause(0.001)
+
                 # vx,vy,w= RobotMovement.velocity_to_target(robot_pos=robot_pos,target=point,speed=1)
                 # print(vx,vy)
                 # command = RobotCommand(robot_id, vx, vy, 0,0,0) 
