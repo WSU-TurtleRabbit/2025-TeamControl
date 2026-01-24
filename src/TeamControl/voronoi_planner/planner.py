@@ -15,6 +15,8 @@ import networkx as nx
 import time
 import sys
 
+plt.ion()
+
 from TeamControl.voronoi_planner.obstacle import Obstacle
 
 # CLEARANCE is the width of the path taken by the robot
@@ -49,6 +51,20 @@ class VoronoiPlanner:
         self.radius = 75
         self.graph = None
 
+        
+
+        fig, self.ax = plt.subplots(figsize=(10, 10))
+        plt.title("Voronoi Path Planning with Obstacle Avoidance")
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.grid(True)
+        plt.show(block=False)
+
+        self.fig = fig
+        self.ax = self.ax
+
+
+
         if obstacles is not None:
             self.update_obstacles(obstacles)
 
@@ -59,13 +75,13 @@ class VoronoiPlanner:
         #     raise AttributeError("NEED TO UPDATE OBSTACLES FIRST")
             # return
         planner_points = self.generate_waypoints(starts=starting_obs,goals=ending_points,threshold=THRESHOLD)                
-        shortcuts = self.find_shortcuts(starting_obs=starting_obs,
-                                        generated_waypoints=planner_points,
-                                        ending_points=ending_points,
-                                        clearance=THRESHOLD)
+        # shortcuts = self.find_shortcuts(starting_obs=starting_obs,
+        #                                 generated_waypoints=planner_points,
+        #                                 ending_points=ending_points,
+        #                                 clearance=THRESHOLD)
         
 
-        return shortcuts
+        return planner_points
 
     def find_shortcuts(self,starting_obs,generated_waypoints,ending_points,clearance,buffer=BUFFER_ZONE):
         simplified_paths = []
@@ -80,13 +96,13 @@ class VoronoiPlanner:
 
             # simplify using proper segment collision check
             simple = self.simplify(full_path, clearance,exclude_yellow=exclude_yellow,exclude_blue=exclude_blue )
-
+            # simple = full_path
             # keep only points that are safe (NOTE: needs clearance-aware check)
             sp = []
             for point in simple:
                 if all(not obs.is_point_inside(point,buffer) for obs in self.obstacles):
                     sp.append(point)
-                    print(f"86 {sp}, {simple}")
+                    # print(f"86 {sp}, {simple}")
 
             # goal safety check (also needs clearance-aware check)
             goal_is_safe = all(not obs.is_point_inside(goal,buffer) for obs in self.obstacles)
@@ -223,11 +239,11 @@ class VoronoiPlanner:
         clearance = clearance + BUFFER_ZONE
         for obs in self.obstacles:
             if (obs.isYellow is True and obs.unum() in exclude_yellow) or (obs.isYellow is False and obs.unum() in exclude_blue):
-                print(f"skipping {obs.unum()} {obs.isYellow}")
+                # print(f"skipping {obs.unum()} {obs.isYellow}")
                 continue
           
             if obs.intersects_line(start, goal, clearance):
-                print(f"[DEBUG] Path blocked between {start} -> {goal} by obstacle {obs.unum()} {obs.isYellow}")
+                # print(f"[DEBUG] Path blocked between {start} -> {goal} by obstacle {obs.unum()} {obs.isYellow}")
                 return False
         return True
 
@@ -243,7 +259,7 @@ class VoronoiPlanner:
             # for i in path_indices
             return list(self.voronoi_vertices[i] for i in path_indices)
         except nx.NetworkXNoPath:
-            print(f"[DEBUG] No path between {start} and {goal}")
+            # print(f"[DEBUG] No path between {start} and {goal}")
             return []
 
     def simplify(self, path, clearance, exclude_yellow=[],exclude_blue=[]):
@@ -257,11 +273,11 @@ class VoronoiPlanner:
             for j in range(i + 2, len(path)):
                 if self.is_path_free(path[i], path[j], clearance,
                                      exclude_yellow=exclude_yellow, exclude_blue=exclude_blue):
-                    print(f"258 PATH IS FREE : {path[i]=},{path[j]=},{clearance}")
+                    # print(f"258 PATH IS FREE : {path[i]=},{path[j]=},{clearance}")
                     next_i = j
                     continue
             simplified.append(path[next_i])
-            print(simplified)
+            # print(simplified)
             i = next_i
         return simplified
 
@@ -283,7 +299,7 @@ class VoronoiPlanner:
             if self.is_path_free(start.centre(), goal,THRESHOLD  ,
                                  exclude_yellow=exclude_yellow,exclude_blue=exclude_blue):
                 # waypoints[start.unum()] = [goal] # dict
-                print(f"path is free 253")
+                # print(f"path is free 253")
                 waypoints.append([goal])
                 continue # done with this robot, skip
             
@@ -300,23 +316,22 @@ class VoronoiPlanner:
 
     def plot(self, starts:list[Obstacle], goals:tuple[float], waypoints:list[list[float]]):
         filename = "path"
-        fig, ax = plt.subplots(figsize=(10, 10))
+        self.ax.clear()
         if self.voronoi_diagram:
-            voronoi_plot_2d(self.voronoi_diagram, ax=ax, show_vertices=True, show_points=True)
-
-        ax.set_xlim((-self.xsize), self.xsize)
-        ax.set_ylim((-self.ysize), self.ysize)
+            voronoi_plot_2d(self.voronoi_diagram, ax=self.ax, show_vertices=True, show_points=True)
+        self.ax.set_xlim((-self.xsize), self.xsize)
+        self.ax.set_ylim((-self.ysize), self.ysize)
 
         # Obstacles
         for obs in self.obstacles:
             circle = Circle(obs.centre(), obs.radius, color='b', fill=True)
-            ax.add_patch(circle)
+            self.ax.add_patch(circle)
 
         # Start & Goals
         
         for s, g in zip(starts, goals):
-            ax.plot(s.x, s.y, 'go')
-            ax.plot(g[0], g[1], 'ro')
+            self.ax.plot(s.x, s.y, 'go')
+            self.ax.plot(g[0], g[1], 'ro')
 
         # Paths
         cmap = plt.colormaps['tab10']
@@ -324,18 +339,14 @@ class VoronoiPlanner:
             # print(path)
             if path:
                 p = add_jitter(np.array([s.centre() for s in [starts[i]]] + path))
-                ax.plot(p[:, 0], p[:, 1], '-', color=cmap(i % 10), linewidth=2)
+                self.ax.plot(p[:, 0], p[:, 1], '-', color=cmap(i % 10), linewidth=2)
 
-        ax.set_aspect('equal')
-        plt.title("Voronoi Path Planning with Obstacle Avoidance")
-        plt.xlabel("X")
-        plt.ylabel("Y")
-        plt.grid(True)
-        plt.show()
+        self.ax.set_aspect('equal')
+
+
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
         
-        # png 
-        plt.savefig(filename, dpi=50, bbox_inches='tight')  
-        plt.close(fig)
 
 
 def generate_points(N, dmin, xrange, yrange, existing=[]):

@@ -1,7 +1,7 @@
 yellow:
 
   A:
-    ip: "192.168.1.5"
+    ip: "192.168.1.15"
     port: 50514
     grSimID : 0
     shellID : 0
@@ -29,14 +29,14 @@ yellow:
     has_chip_kick: false
 
   E: 
-    ip: "127.0.0.1"
+    ip: "192.168.1.11"
     port: 50514
     grSimID : 4
     shellID : 4
     has_chip_kick: false
 
   F:
-    ip: "192.168.1.4"
+    ip: "192.168.1.15"
     port: 50514
     grSimID : 5
     shellID : 5
