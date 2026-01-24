@@ -18,6 +18,7 @@ import sys
 plt.ion()
 
 from TeamControl.voronoi_planner.obstacle import Obstacle
+from TeamControl.voronoi_planner.graph import ClosedVoronoi
 
 # CLEARANCE is the width of the path taken by the robot
 CLEARANCE = 200
@@ -44,13 +45,14 @@ def offset_goal_if_inside_obstacle(start_pos:tuple[float], goal_pos:tuple[float]
 
 
 class VoronoiPlanner:
-    def __init__(self, xsize, ysize, obstacles=None):
+    def __init__(self, xsize, ysize, obstacles=[]):
         self.xsize = xsize//2 # vision field has both + and - 
         self.ysize = ysize//2
-        self.obstacles = []
-        self.radius = 75
-        self.graph = None
-
+        self.obstacles = obstacles
+        self.plt= None
+        self.builder = ClosedVoronoi(width=9000, height=6000, threshold=300, ring_k=12)
+        
+        
         
 
         fig, self.ax = plt.subplots(figsize=(10, 10))
@@ -63,22 +65,19 @@ class VoronoiPlanner:
         self.fig = fig
         self.ax = self.ax
 
-
-
-        if obstacles is not None:
+        if len(obstacles) > 0:
             self.update_obstacles(obstacles)
 
-    def do_plan(self,starting_obs,ending_points,all_obstacles):
+    def do_plan(self,starting_obs,ending_points):
         # main sequence for pathplanner :
-        self.update_obstacles(obstacles=all_obstacles,exclude=starting_obs)
         # if self.graph is None or self.obstacles is None:
         #     raise AttributeError("NEED TO UPDATE OBSTACLES FIRST")
             # return
         planner_points = self.generate_waypoints(starts=starting_obs,goals=ending_points,threshold=THRESHOLD)                
-        # shortcuts = self.find_shortcuts(starting_obs=starting_obs,
-        #                                 generated_waypoints=planner_points,
-        #                                 ending_points=ending_points,
-        #                                 clearance=THRESHOLD)
+        shortcuts = self.find_shortcuts(starting_obs=starting_obs,
+                                        generated_waypoints=planner_points,
+                                        ending_points=ending_points,
+                                        clearance=THRESHOLD)
         
 
         return planner_points
@@ -190,21 +189,17 @@ class VoronoiPlanner:
         self.obstacles = obstacles
 
         # Step 2: cluster overlapping or close obstacles
-        # self.obstacles = self.cluster_obstacles(self.obstacles,exclude=exclude)
+        self.obstacles = self.cluster_obstacles(self.obstacles,exclude=exclude)
 
         # Step 3: get obstacle centers for Voronoi seeds
         self.obstacle_centres = [o.centre() for o in self.obstacles]
+        cells, vor, adj = self.builder.build(obstacles)
 
         # Step 4: build Voronoi diagram if we have enough points
-        if len(self.obstacle_centres) >= 4:
-            self.voronoi_diagram = Voronoi(self.obstacle_centres)
-            self.voronoi_vertices = self.voronoi_diagram.vertices
-            self.graph = self.build_voronoi_graph()
-        else:
-            # Not enough points for Voronoi, keep empty structures
-            self.voronoi_diagram = None
-            self.voronoi_vertices = np.empty((0, 2))
-            self.graph = nx.Graph()
+        self.voronoi_diagram = vor
+        self.voronoi_vertices = self.voronoi_diagram.vertices
+        self.graph = self.build_voronoi_graph()
+
 
 
     def build_voronoi_graph(self):
