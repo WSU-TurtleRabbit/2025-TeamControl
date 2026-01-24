@@ -36,6 +36,10 @@ def run_simple_striker(dispatch_q, wm: WorldModel, robot_id=0, is_yellow=True):
         # hence angle_to_ball is constant and robot spins in place
         # ideally the angle should update as the robot moves
 
+        # fix to the above ^ make sure to go ipconfig.yaml and set use_grSim_vision to true
+
+        # commented out angular velocity
+
         # time.sleep(0.5)
         frame = wm.get_latest_frame()
         if frame is None or frame.ball is None :
