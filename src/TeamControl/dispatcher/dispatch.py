@@ -123,7 +123,7 @@ class Dispatcher(BaseWorker):
             # print(f" RobotCommand has been sent to grSim : {robot_dict['grSimID']=} " )
         # print (f"diff {self.last_sent_time + 0.001} < {str(time.time())}")
 
-        if self.last_sent_time + 0.1 < time.time():
+        if self.last_sent_time + 0.05 < time.time():
             self.r_sender.send(command,robot_dict["ip"],robot_dict["port"])
 
             # print(f"Robot Command {shell_id} sent to  @ {robot_dict['ip'],robot_dict['port']}")
