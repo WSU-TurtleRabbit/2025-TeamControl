@@ -24,7 +24,7 @@ class PathPlanner():
         self.robot_id = robot_id
         self.version = 0
         self.wm = world_model
-        field_x, field_y = (9000,6000)
+        field_x, field_y = (5000,2700)
         self.timeout = 30
         self.p = VoronoiPlanner(xsize=field_x,ysize=field_y) #initialise planner
         self.output_q = dispatcher_q # output to behaviour tree or world model
@@ -48,7 +48,8 @@ class PathPlanner():
         start_time = 0
         timeout = self.timeout
         target_pos = 0,0
-        new_target = False
+        new_target = True
+        path_planed = False
         # fig, ax = plt.subplots()
         # ax.set_ylim(-2500, 2500)
         # ax.set_xlim(-1400, 1400)
@@ -68,12 +69,13 @@ class PathPlanner():
                     self.goals = [target_pos]
                     print("target has changed") 
                     new_target = True
+                    path_planed = False
                                        
                 # print(f"{target_pos=}")
                 self.update_planner(frame=self.frame)
-                if start_time + timeout < time.time() or new_target:
+                if new_target or path_planed is False:
                     new_target = False
-                    waypoints:list = self.pathplanning(robot_id=robot_id,target_pos=target_pos)
+                    waypoints:list = self.pathplanning()
                     print(f"{waypoints[0]=}, {robot_pos=}, {target_pos=}")
                 
                 self.p.plot(self.path_obs, [target_pos1], waypoints)
@@ -89,10 +91,10 @@ class PathPlanner():
                 
 
 
-                vx,vy,w= RobotMovement.velocity_to_target(robot_pos=robot_pos,target=point,speed=1.5,stop_threshold=10)
+                vx,vy,w= RobotMovement.velocity_to_target(robot_pos=robot_pos,target=point,speed=0.75,stop_threshold=70)
                 # print(vx,vy)
-                command = RobotCommand(robot_id, vx, vy, w,0,0) 
-                runtime = 2
+                command = RobotCommand(robot_id, vx, vy,0,0,0) 
+                runtime = 1
                 # ax.scatter(target_pos[0], target_pos[1], s=10, c='r', alpha=0.7)
                 # transformed = robot2world(robot_pos, p=[vx, vy, 0])
                 self.output_q.put((command, runtime))
@@ -100,7 +102,7 @@ class PathPlanner():
                 # fig.canvas.draw()
                 # fig.canvas.flush_events()
                 plt.pause(0.001)
-                time.sleep(0.1)
+                # time.sleep(0.1)
                 # output to dispatcher for prototype 
                     # # assuming 0 angular velocity
                 # break
@@ -127,10 +129,10 @@ class PathPlanner():
         all_obstacles = our_robot_obs + enemy_robot_obs
         # print("number of Obstacles:",len(all_obstacles))
 
-        self.p.update_obstacles(obstacles=all_obstacles,exclude=self.path_obs)
+        self.p.update_obstacles(obstacles=all_obstacles)
 
     ## this is modified from the example, and I turned it into 1 robot only.
-    def pathplanning(self,robot_id,target_pos):
+    def pathplanning(self):
         """
         This generates waypoints for all of our robots to target and returns as a list
 
