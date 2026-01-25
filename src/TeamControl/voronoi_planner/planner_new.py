@@ -21,9 +21,9 @@ from TeamControl.voronoi_planner.obstacle import Obstacle
 from TeamControl.voronoi_planner.graph import ClosedVoronoi
 
 # CLEARANCE is the width of the path taken by the robot
-CLEARANCE = 200
+CLEARANCE = 1300
 # additional radius to the obstacle
-BUFFER_ZONE = 50
+BUFFER_ZONE = 80
 # THRESHOLD is for logical decision making (decision boundary)
 THRESHOLD = CLEARANCE + BUFFER_ZONE
 
@@ -50,7 +50,7 @@ class VoronoiPlanner:
         self.ysize = ysize//2
         self.obstacles = obstacles
         self.plt= None
-        self.builder = ClosedVoronoi(width=9000, height=6000, threshold=300, ring_k=12)
+        self.builder = ClosedVoronoi(width=xsize, height=ysize, threshold=THRESHOLD, ring_k=4)
         
         
         
@@ -189,11 +189,11 @@ class VoronoiPlanner:
         self.obstacles = obstacles
 
         # Step 2: cluster overlapping or close obstacles
-        self.obstacles = self.cluster_obstacles(self.obstacles,exclude=exclude)
+        # self.obstacles = self.cluster_obstacles(self.obstacles,exclude=exclude)
 
         # Step 3: get obstacle centers for Voronoi seeds
         self.obstacle_centres = [o.centre() for o in self.obstacles]
-        cells, vor, adj = self.builder.build(obstacles)
+        cells, vor, adj = self.builder.build(self.obstacles)
 
         # Step 4: build Voronoi diagram if we have enough points
         self.voronoi_diagram = vor
