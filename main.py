@@ -37,7 +37,7 @@ def main():
     vision_q = Queue()
     gc_q = Queue()
     dispatch_q = Queue()
-    # planner_q = Queue()
+    planner_q = Queue()
     
     # robot_feedback_q = Queue()
 
@@ -66,19 +66,20 @@ def main():
     goalie = Process(target=run_goalie,args=(dispatch_q,wm,4,preset.us_yellow))
     # chaser = Process(target=run_follow_ball_dummy,args=(dispatch_q,wm,1,preset.us_yellow))
     # some_other_process2 = Process(target=DummyReader,args=(wm,))'
-    robot_recv = Process(target=RobotRecv.run_worker, args=(is_running,logger))
+    # robot_recv = Process(target=RobotRecv.run_worker, args=(is_running,logger))
     is_running.set()
+    
     ## BACKGROUND PROCESSES ##
     vision_wkr.start()
-    # gc_wkr.start()
+    gc_wkr.start()
     wmr.start()
     dispatch_wkr.start()
-    robot_recv.start()
+    # robot_recv.start()
     
     ## FORGROUND ##
     # goalie.start()
     # bt.start()
-    # striker.start()
+    striker.start()
     # chaser.start()
     planner_wkr.start()
     planner_wkr1.start()
@@ -105,7 +106,7 @@ def main():
 
     # Then wait for processes
     vision_wkr.join(timeout=5)
-    # gc_wkr.join(timeout=5)
+    gc_wkr.join(timeout=5)
     wmr.join(timeout=5)
     dispatch_wkr.join(timeout=5)
             
