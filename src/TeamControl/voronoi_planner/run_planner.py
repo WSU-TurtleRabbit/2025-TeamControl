@@ -91,7 +91,7 @@ class PathPlanner():
                 
 
 
-                vx,vy,w= RobotMovement.velocity_to_target(robot_pos=robot_pos,target=point,speed=0.75,stop_threshold=70)
+                vx,vy,w= RobotMovement.velocity_to_target(robot_pos=robot_pos,target=point,speed=0.1,stop_threshold=70)
                 # print(vx,vy)
                 command = RobotCommand(robot_id, vx, vy,0,0,0) 
                 runtime = 1
@@ -102,7 +102,7 @@ class PathPlanner():
                 # fig.canvas.draw()
                 # fig.canvas.flush_events()
                 plt.pause(0.001)
-                # time.sleep(0.1)
+                time.sleep(0.5)
                 # output to dispatcher for prototype 
                     # # assuming 0 angular velocity
                 # break
