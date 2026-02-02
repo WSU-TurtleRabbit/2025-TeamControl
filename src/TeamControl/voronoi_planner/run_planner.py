@@ -24,7 +24,8 @@ class PathPlanner():
         self.robot_id = robot_id
         self.version = 0
         self.wm = world_model
-        field_x, field_y = (5000,2700)
+        # field_x, field_y = (5000,2700)
+        field_x, field_y = (9000,6000)
         self.timeout = 30
         self.p = VoronoiPlanner(xsize=field_x,ysize=field_y) #initialise planner
         self.output_q = dispatcher_q # output to behaviour tree or world model
