@@ -76,8 +76,8 @@ def main():
     robot_recv.start()
     
     ## FORGROUND ##
-    goalie.start()
-    bt.start()
+    # goalie.start()
+    # bt.start()
     # striker.start()
     # chaser.start()
     planner_wkr.start()
@@ -113,7 +113,7 @@ def main():
     robot_recv.join()
     # striker.join()
     # chaser.join()   
-    goalie.join()
+    # goalie.join()
 
     planner_wkr.join()
     planner_wkr1.join()
