@@ -11,10 +11,10 @@ import numpy as np
 import math
 import time
 
-MAX_SPEED = 0.7
+MAX_SPEED = 1
 
 class TestTreeSeq(py_trees.composites.Sequence):
-    def __init__(self,wm,dispatcher_q,robot_id:int=5,isYellow=True,isPositive=None,logger=None):
+    def __init__(self,wm,dispatcher_q,robot_id:int,isYellow=True,isPositive=None,logger=None):
         color = "YELLOW" if isYellow is True else "BLUE"
         name = f"TestTreeSeq {robot_id},{color}"
         super().__init__(name,memory=True)
@@ -344,6 +344,8 @@ class DoDribbleKick(py_trees.behaviour.Behaviour):
         if distance <= self.dribble_threshold and abs(angle_diff) <= self.kick_angle:
             self.logger.info("DRIBBLING")
             dribble = 1
+            self.bb.vx = 0.1
+            
 
             if self.start_time == 0:
                 self.logger.info("START_TIMER_____")
