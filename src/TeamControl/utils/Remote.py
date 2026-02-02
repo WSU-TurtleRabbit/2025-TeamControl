@@ -8,10 +8,10 @@ from TeamControl.network.ssl_sockets import grSimSender
 from TeamControl.network.robot_command import RobotCommand
 
 class Remote_robot():
-    def __init__(self, robot_id=1, isYellow=True):
+    def __init__(self, robot_id=1, isYellow=True):  
         self.robot_id = robot_id
         self.us_yellow = isYellow
-        robot_ip = "172.20.10.14"
+        robot_ip = "172.20.10.2"
         self.sender = LockedSender(ip=robot_ip,port=50514)
         # self.sender = grSimSender()
         

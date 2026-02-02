@@ -60,8 +60,8 @@ def main():
     # bt = Process(target=run_bt_process, args=(is_running,wm,dispatch_q,) )
     striker = Process(target=run_simple_striker, args=(dispatch_q, wm, 0, preset.us_yellow))
     dispatch_wkr = Process(target=Dispatcher.run_worker, args=(is_running,logger,dispatch_q,preset,),)
-    planner_wkr = Process(target=run_planner, args=(wm,dispatch_q,5))
-    # planner_wkr1 = Process(target=run_planner, args=(wm,dispatch_q,1))
+    planner_wkr = Process(target=run_planner, args=(wm,dispatch_q,4))
+    planner_wkr1 = Process(target=run_planner, args=(wm,dispatch_q,1))
 
     # goalie = Process(target=run_goalie,args=(dispatch_q,wm,1,preset.us_yellow))
     # chaser = Process(target=run_follow_ball_dummy,args=(dispatch_q,wm,1,preset.us_yellow))
@@ -80,8 +80,8 @@ def main():
     # bt.start()
     striker.start()
     # chaser.start()
-    # planner_wkr.start()
-    # planner_wkr1.start()
+    planner_wkr.start()
+    planner_wkr1.start()
     # some_other_process2.start()
 
     while is_running.is_set():
@@ -110,13 +110,13 @@ def main():
     dispatch_wkr.join(timeout=5)
             
     # bt.join()
-    # robot_recv.join()
-    striker.join()
+    robot_recv.join()
+    # striker.join()
     # chaser.join()   
     # goalie.join()
 
-    # planner_wkr.join()
-    # planner_wkr1.join()
+    planner_wkr.join()
+    planner_wkr1.join()
     
     # some_other_process2.join()
         
