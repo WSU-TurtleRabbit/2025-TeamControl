@@ -79,7 +79,7 @@ def main():
     ## FORGROUND ##
     # goalie.start()
     # bt.start()
-    striker.start()
+    # striker.start()
     # chaser.start()
     planner_wkr.start()
     planner_wkr1.start()
