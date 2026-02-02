@@ -49,18 +49,23 @@ class RobotMovement:
         if target is None:
             return 0.0
 
-        new_orientation = wrap_to_pi(np.arctan2(target[1],target[0]))    
-        if abs(new_orientation) < epsilon: #smaller than threshold
-            # print("Already looking at target")
-            omega = 0.0
-
-        elif abs(new_orientation) < 2 * epsilon:
-            omega = new_orientation/d_time * speed * 0.05
+        # Correct orientation for robot coordinate frame
+        angle = math.atan2(target[1], target[0])
+        
+        if abs(angle)<epsilon:
+            omega=0.0
+        elif abs(angle)<0.18:
+            omega=speed*math.copysign(1, angle)
+        elif abs(angle)<0.7:
+            omega=speed*2*math.copysign(1, angle)
+        elif abs(angle)<1.57:
+            omega=speed*3*math.copysign(1, angle)
         else:
-            omega = new_orientation/d_time * speed * 1
-
+            omega=speed*4*math.copysign(1, angle)
+            
         return omega
-    
+
+        
     
     @staticmethod
     def behind_ball_point(ball, goal, buffer_radius):
@@ -93,6 +98,19 @@ class RobotMovement:
         behind_y = by - dy * buffer_radius
 
         return behind_x, behind_y
+    
+    @staticmethod
+    def threshold_zone(distance:float)-> float:
+        # return max speed allowed in that zone
+        
+        if distance < 1: #kicker zone
+            return 0.0
+        if distance < 300: #dribble zone
+            return 0.04
+        if distance < 500: #normal zone
+            return 0.08
+        return 0.1 #fast zone
+
 
     @staticmethod
     def go_To_Target(target_pos: tuple[float, float],
@@ -101,14 +119,21 @@ class RobotMovement:
 
         if target_pos is None:
             return 0.0, 0.0
+        
+        
 
         dist = math.hypot(target_pos[0], target_pos[1])
-        if dist > stop_threshold:
-            vx = (target_pos[0] / dist) * speed
-            vy = (target_pos[1] / dist) * speed
-            return vx, vy
+        speed = RobotMovement.threshold_zone(dist)
+        
+        
+        if dist<=0.0:
+            return 0.0, 0.0
+        
+        vx = (target_pos[0] / dist) * speed
+        vy = (target_pos[1] / dist) * speed
+        
+        return vx, vy
 
-        return 0.0, 0.0
 
     @staticmethod
     def shooting_pos(ball_pos: tuple[float, float],
