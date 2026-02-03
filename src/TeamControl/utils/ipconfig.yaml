@@ -88,7 +88,7 @@ blue:
     has_chip_kick: false
 
 grSim:
-  ip: "192.168.1.6"
+  ip: "127.0.0.1"
   port: 20010
 
 vision:

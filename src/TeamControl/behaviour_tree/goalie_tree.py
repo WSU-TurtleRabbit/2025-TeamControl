@@ -199,8 +199,11 @@ class RobotLookAtBall(py_trees.behaviour.Behaviour):
         
     def update(self):
         # get the newest ball and set as target
-        self.bb.facing_pos = self.bb.ball_hist[0]        
-        return py_trees.common.Status.SUCCESS
+        self.bb.facing_pos = self.bb.ball_hist[0]  
+        if self.bb.facing_pos is not None:      
+            return py_trees.common.Status.SUCCESS
+        else:
+            return py_trees.common.Status.FAILURE
 
 class RobotGoToTarget(py_trees.behaviour.Behaviour):
     def __init__(self,turn=False,stop_threshold=50):
