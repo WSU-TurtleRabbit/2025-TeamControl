@@ -1,8 +1,6 @@
 # from TeamControl.voronoi_planner.planner import VoronoiPlanner
 from TeamControl.voronoi_planner.planner_new import VoronoiPlanner
 from TeamControl.world.model import WorldModel as wm
-
-# testing go to target 
 from TeamControl.robot.Movement import RobotMovement
 from TeamControl.network.robot_command import RobotCommand
 import numpy as np
@@ -31,10 +29,8 @@ class PathPlanner():
         self.output_q = dispatcher_q # output to behaviour tree or world model
 
     def check_wm_update(self):
-    #get update from world model
-        # updates from world model if this is active
-        self.isYellow = self.wm.us_yellow() if hasattr(self.wm, "us_yellow") else self.isYellow 
-        
+        # checks if world model has is_yellow otherwise use default here
+        self.isYellow = self.wm.us_yellow() if hasattr(self.wm, "us_yellow") else self.isYellow
         # frame version check. 
         new_version = self.wm.get_version() #compares version
         if self.version <= new_version:

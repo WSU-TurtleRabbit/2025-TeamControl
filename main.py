@@ -18,6 +18,10 @@ from TeamControl.utils.follow_ball_dummy import run_follow_ball_dummy
 from TeamControl.robot.goalie import run_goalie
 from TeamControl.robot.striker import run_simple_striker
 
+from TeamControl.robot.striker import run_striker
+from TeamControl.robot.unittest import run_test_to_goal
+from TeamControl.plotter.plot import run_plotter
+
 
 
 # in multiprocessing this can only be a simple process
@@ -64,8 +68,8 @@ def main():
     planner_wkr1 = Process(target=run_planner, args=(wm,dispatch_q,1))
 
     goalie = Process(target=run_goalie,args=(dispatch_q,wm,4,preset.us_yellow))
+    plotter = Process(target=run_plotter, args=(is_running,wm,))
     # chaser = Process(target=run_follow_ball_dummy,args=(dispatch_q,wm,1,preset.us_yellow))
-    # some_other_process2 = Process(target=DummyReader,args=(wm,))'
     # robot_recv = Process(target=RobotRecv.run_worker, args=(is_running,logger))
     is_running.set()
     
@@ -77,13 +81,13 @@ def main():
     # robot_recv.start()
     
     ## FORGROUND ##
+    # plotter.start()
     # goalie.start()
     # bt.start()
     # striker.start()
     # chaser.start()
     planner_wkr.start()
     planner_wkr1.start()
-    # some_other_process2.start()
 
     while is_running.is_set():
         try:
@@ -109,19 +113,21 @@ def main():
     gc_wkr.join(timeout=5)
     wmr.join(timeout=5)
     dispatch_wkr.join(timeout=5)
-            
+    # robot_recv.join()
+    
     # bt.join()
-    robot_recv.join()
     # striker.join()
     # chaser.join()   
     # goalie.join()
+    # plotter.join(timeout=5)
+
 
     planner_wkr.join()
     planner_wkr1.join()
     
     # some_other_process2.join()
         
-        
+    print("All processes has been ended")
         
         
 if __name__ == "__main__":

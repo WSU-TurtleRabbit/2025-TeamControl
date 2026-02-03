@@ -8,12 +8,16 @@ from TeamControl.world.transform_cords import world2robot
 # typings
 from TeamControl.world.model import WorldModel
 from TeamControl.SSL.vision.frame import Frame
+# typing
 from multiprocessing import Queue
+from multiprocessing.synchronize import Event
+
 
 import time
 
 class Goalie():
-    def __init__(self,dispatch_q:Queue,wm:WorldModel,goalie_id,is_yellow):
+    def __init__(self,is_running:Event,dispatch_q:Queue,wm:WorldModel,goalie_id,is_yellow):
+        self.is_running = is_running
         self.dispatch_q = dispatch_q
         self.is_yellow = is_yellow
         self.wm = wm
@@ -30,7 +34,7 @@ class Goalie():
         pass
     
     def run(self):            
-        while True:     
+        while self.is_running.is_set():     
             # if self.version <= self.wm.get_version():
             try:
                 frame = self.wm.get_latest_frame()
@@ -77,6 +81,6 @@ class Goalie():
         return self.ball_hist
         
     
-def run_goalie(dispatch_q,wm: WorldModel,goalie_id,is_yellow):
-    g = Goalie(dispatch_q,wm,goalie_id=goalie_id,is_yellow=is_yellow)
+def run_goalie(is_running,dispatch_q,wm: WorldModel,goalie_id,is_yellow):
+    g = Goalie(is_running,dispatch_q,wm,goalie_id=goalie_id,is_yellow=is_yellow)
     g.run()

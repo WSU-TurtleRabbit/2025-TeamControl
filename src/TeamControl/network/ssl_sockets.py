@@ -1,4 +1,4 @@
-from TeamControl.network.proto2 import ssl_vision_wrapper_pb2,ssl_vision_detection_tracked_pb2,ssl_gc_referee_message_pb2,grSim_Packet_pb2
+from TeamControl.network.proto2 import ssl_vision_wrapper_pb2,ssl_vision_wrapper_tracked_pb2,ssl_gc_referee_message_pb2,grSim_Packet_pb2
 from TeamControl.network.receiver import SSL_Multicast
 from TeamControl.network.sender import LockedSender
 from TeamControl.network.robot_command import RobotCommand
@@ -35,12 +35,13 @@ class VisionTracker(SSL_Multicast):
     Args:
         Multicast: the recv socket
     """
-    def __init__(self, is_running:Event,port, group, decoder, buffer_size = 6000, timeout = 1):
-        port = 10007
-        decoder = ssl_vision_detection_tracked_pb2.TrackerWrapperPacket()
+    def __init__(self, is_running:Event, port=10010 ):
+        
+        decoder = ssl_vision_wrapper_tracked_pb2.TrackerWrapperPacket()
         group : str = "224.5.23.2"
         buffer_size : int = 6000
-        super().__init__(port, group, decoder, buffer_size, timeout)
+        super().__init__(is_running=is_running,port=port, group=group, decoder=decoder,
+                         buffer_size=buffer_size, timeout=1)
 
 
 class GameControl(SSL_Multicast):
@@ -120,9 +121,21 @@ class grSimSender(LockedSender):
 
 
 if __name__ == "__main__":
-    sender = grSimSender()
-    cmd = RobotCommand(1)
-    sender.send_robot_command(cmd)
+    is_running = Event()
+    is_running.set()
+    
+    vt = VisionTracker(is_running)
+    while True:
+        try:
+            if is_running.is_set():
+                data = vt.listen()
+                print(data)
+        except KeyboardInterrupt:
+            is_running.clear()
+            
+    # sender = grSimSender()
+    # cmd = RobotCommand(1)
+    # sender.send_robot_command(cmd)
     
     
 
