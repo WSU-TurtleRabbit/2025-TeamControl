@@ -43,6 +43,34 @@ class GetWorldPositionUpdate(py_trees.behaviour.Behaviour):
         # otherwise keep running
         return py_trees.common.Status.RUNNING
 
+# mock behaviour for testing main tree
+class GetBallPosition(py_trees.behaviour.Behaviour):
+    # where condition represents the condition for the behaviour to succeed
+    # condition = 0 : always fail
+    # condition = 1 : always succeed
+    def __init__(self, robot_id, condition:int=0):
+        name = f"GetBallPosition (Robot ID {robot_id})"
+        self.robot_id = robot_id
+        self.condition = condition
+        super().__init__(name)
+        
+    def setup(self,logger=None):
+        if logger is not None:
+            self.logger = logger
+        self.bb = py_trees.blackboard.Client(name="GetBallPosition")
+        self.bb.register_key(key="ball_pos", access=py_trees.common.Access.READ)
+        self.bb.register_key(key="ball_position", access=py_trees.common.Access.WRITE)
+        
+    def update(self) -> py_trees.common.Status:
+        ball_pos = self.bb.ball_pos
+        if ball_pos is not None and self.condition == 1:
+            self.bb.ball_position = ball_pos
+            self.logger.info(f"[GetBallPosition] Ball position: {ball_pos}\nCondition: {self.condition}")
+            return py_trees.common.Status.SUCCESS
+        else:
+            self.bb.ball_position = (0,0)
+            self.logger.info(f"[GetBallPosition] Failed to get ball position.\nCondition: {self.condition}")
+            return py_trees.common.Status.FAILURE
 
 class SendRobotCommand(py_trees.behaviour.Behaviour):
     def __init__(self,dispatcher_q,runtime=1):
