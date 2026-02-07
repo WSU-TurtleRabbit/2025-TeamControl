@@ -57,7 +57,13 @@ class CommandManager:
 
         return False
 
-
+    def clear(self):
+        self.vx = 0
+        self.vy = 0
+        self.w = 0
+        self.dribble = 0
+        self.kick = 0 
+        self.run_time = 1 
 if __name__ == "__main__":
     from queue import Queue
 
