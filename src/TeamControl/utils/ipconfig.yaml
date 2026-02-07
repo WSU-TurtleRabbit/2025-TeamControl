@@ -88,7 +88,7 @@ blue:
     has_chip_kick: false
 
 grSim:
-  ip: "192.168.1.3"
+  ip: "127.0.0.1"
   port: 20010
 
 vision:
@@ -99,7 +99,7 @@ gc:
   multicast-group: '224.5.23.1'
   port: 10003 
 
-use_grSim_vision: false
+use_grSim_vision: true
 us_yellow: true
 us_positive: us_yellow
 send_to_grSim: true

@@ -1,6 +1,7 @@
 from multiprocessing import Process, Queue,Event
 from TeamControl.world.model import WorldModel
 from TeamControl.behaviour_tree.test_tree import TestTreeSeq
+from TeamControl.behaviour_tree.striker_tree import StrikerRunningSeq
 from TeamControl.behaviour_tree.goalie_tree import GoalieRunningSeq
 from TeamControl.utils.Logger import LogSaver
 
@@ -21,7 +22,7 @@ def run_bt_process(is_running:Event,wm:WorldModel, dispatcher_q:Queue)->None:
     logger = LogSaver()
     # logger = None
     isYellow = True
-    root = TestTreeSeq(wm=wm,dispatcher_q=dispatcher_q,robot_id=5,isYellow=isYellow,logger=logger)
+    root = StrikerRunningSeq(wm=wm,dispatcher_q=dispatcher_q,striker_id=5,isYellow=isYellow,logger=logger)
     # root = GoToBallSequence(wm,dispatcher_q,logger)
     bt = py_trees.trees.BehaviourTree(root)
     bt.setup(timeout=15) # remember to add timeout

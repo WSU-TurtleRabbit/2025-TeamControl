@@ -4,17 +4,19 @@ import math
 from TeamControl.network.robot_command import RobotCommand
 from TeamControl.world.model import WorldModel
 from TeamControl.world.transform_cords import world2robot
+from TeamControl.robot.Movement import RobotMovement
 
 # =========================
 # Tunables
 # =========================
-CAPTURE_DISTANCE = 200.0
-KICK_DISTANCE = 140.0
+CAPTURE_DISTANCE = 140.0 #stop_threshol=70
+KICK_DISTANCE = 90.0
 
 BALL_CENTER_TOL = 0.20        # rad
 GOAL_ALIGN_TOL = 0.20         # rad
 BALL_FRONT_MIN = 30.0         # mm
 
+HAVE_BALL = True
 DRIBBLE_ON = 1
 KICK_PULSE = 0.12
 KICK_COOLDOWN = 0.4
@@ -82,47 +84,76 @@ def run_simple_striker(dispatch_q, wm: WorldModel, robot_id=0, is_yellow=True):
 
         now = time.time()
 
-        # =========================
-        # 1) GO TO BALL
-        # =========================
-        if dist_to_ball > CAPTURE_DISTANCE:
-            vx = 0.8
-            w = clamp(2.0 * angle_to_ball, -MAX_W, MAX_W)
-
+        
         # =========================
         # 2) CAPTURE / DRIBBLE
         # =========================
+        
+        # # keep ball centered first
+        # if not ball_centered:
+        #     vx = 0.3 * max(0.0, math.cos(angle_to_ball))
+        #     w = clamp(2.2 * angle_to_ball, -MAX_W, MAX_W)
+
+        # # face goal
+        # else: # ball_centered=true
+        #     if abs(angle_to_goal) > GOAL_ALIGN_TOL:
+        #         vx = 0.0
+        #         w = clamp(2.0 * angle_to_goal, -MAX_W, MAX_W)
+        #     else:
+        #         vx = 0.4 * max(0.0, math.cos(angle_to_ball))
+        #         w = clamp(1.2 * angle_to_goal, -MAX_W, MAX_W)
+        
+        # if not ball_centered:
+        # # Turn toward ball
+            
+        #     w = clamp(2.2 * angle_to_ball, -MAX_W, MAX_W)
+            
+        # elif dist_to_ball > CAPTURE_DISTANCE:
+        # # Ball centered but not close enough → move gently forward to capture it
+        #         vx = 0.6
+                
+
+        # if dist_to_ball <= CAPTURE_DISTANCE :
+        #     # Ball is close & centered → rotate in place to face goal
+        #         vx = 0.5
+                
+
+        # elif dist_to_ball <= CAPTURE_DISTANCE and abs(angle_to_goal) <= GOAL_ALIGN_TOL :
+        # # Ball centered, close, goal aligned → move forward to shoot
+        #     vx = 0.0
+        #     w = clamp(2.2 * angle_to_goal, -MAX_W, MAX_W)
+
+        # =========================
+        # 3) KICK
+        # =========================
+        # if (
+        #     dist_to_ball < KICK_DISTANCE
+        #     and ball_in_front
+        #     and abs(angle_to_goal) < GOAL_ALIGN_TOL
+        # ):
+        #     if (now - last_kick_time) > KICK_COOLDOWN:
+        #         kick_until = now + KICK_PULSE
+        #         last_kick_time = now
+
+        # kick = 1 if time.time() < kick_until else 0
+        # if kick:
+        #     dribble = 0
+        
+        if abs(angle_to_ball)> BALL_CENTER_TOL:
+            # Turn toward ball
+            w = clamp(2.2 * angle_to_ball, -MAX_W, MAX_W)
+            
+        elif dist_to_ball > CAPTURE_DISTANCE and not HAVE_BALL:
+            vx,vy = RobotMovement.go_To_Target(ball_rel,speed=0.8, stop_threshold=CAPTURE_DISTANCE)
+        
+        if dist_to_ball< CAPTURE_DISTANCE and angle_to_ball<= BALL_CENTER_TOL:
+            dribble=1
         else:
-            # keep ball centered first
-            if not ball_centered:
-                vx = 0.3
-                w = clamp(2.2 * angle_to_ball, -MAX_W, MAX_W)
-
-            # face goal
-            else:
-                if abs(angle_to_goal) > GOAL_ALIGN_TOL:
-                    vx = 0.0
-                    w = clamp(2.0 * angle_to_goal, -MAX_W, MAX_W)
-                else:
-                    vx = 0.4
-                    w = clamp(1.2 * angle_to_goal, -MAX_W, MAX_W)
-
-            # =========================
-            # 3) KICK
-            # =========================
-            if (
-                dist_to_ball < KICK_DISTANCE
-                and ball_in_front
-                and abs(angle_to_goal) < GOAL_ALIGN_TOL
-            ):
-                if (now - last_kick_time) > KICK_COOLDOWN:
-                    kick_until = now + KICK_PULSE
-                    last_kick_time = now
-
-        kick = 1 if time.time() < kick_until else 0
-        if kick:
-            dribble = 0
-
+            dribble=0
+            
+        if dist_to_ball<=KICK_DISTANCE:
+            HAS_BALL = True
+            
         cmd = RobotCommand(
             robot_id=robot_id,
             vx=vx,

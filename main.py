@@ -76,10 +76,10 @@ def main():
     robot_recv.start()
     
     ## FORGROUND ##
-    # bt.start()
-    # striker.start()
+    bt.start()
+    #striker.start()
     # chaser.start()
-    planner_wkr.start()
+    # planner_wkr.start()
     # planner_wkr1.start()
     # some_other_process2.start()
 
@@ -109,12 +109,12 @@ def main():
     dispatch_wkr.join(timeout=5)
             
     bt.join()
-    robot_recv.join()
-    # striker.join()
+    #robot_recv.join()
+    #striker.join()
     # chaser.join()   
     # goalie.join()
 
-    planner_wkr.join()
+    # planner_wkr.join()
     # planner_wkr1.join()
     
     # some_other_process2.join()

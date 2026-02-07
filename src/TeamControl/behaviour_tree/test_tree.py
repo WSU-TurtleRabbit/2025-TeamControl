@@ -3,6 +3,7 @@ from TeamControl.robot.Movement import RobotMovement
 from TeamControl.world.transform_cords import world2robot
 from TeamControl.network.robot_command import RobotCommand
 from TeamControl.behaviour_tree.common_trees import GetWorldPositionUpdate,GetRobotIDPosition
+from TeamControl.robot.velocity import go_to_target,calculate_linear_velocity,Mode
 # from TeamControl.utils.Logger import LogSaver
 
 
@@ -203,7 +204,7 @@ class CalculateAngularVelocity(py_trees.behaviour.Behaviour):
  
   
 class GoToTarget(py_trees.composites.Selector):
-    def __init__(self,threshold:int=150,speed=1):
+    def __init__(self,threshold:int,mode):
         name = f"Go_To_Target"
         super().__init__(name,memory=True)
         self.b1 = py_trees.blackboard.Client(name=name)
@@ -214,8 +215,8 @@ class GoToTarget(py_trees.composites.Selector):
             # check if it is at target
             AlreadyAtTarget(threshold=threshold),
             # otherwise calculate the velocity to target
-            CalculateLinearVelocity(threshold=threshold,speed=speed)
-        ]) 
+            CalculateLinearVelocity(mode)
+        ])
         
     def setup(self,logger=None):
         if logger is not None:
@@ -228,9 +229,6 @@ class GoToTarget(py_trees.composites.Selector):
     
 
     def initialise(self):
-        current_pos = self.b1.robot_pos
-        target_pos = self.b1.target_pos
-        self.b1.trans_pos = world2robot(robot_position=current_pos,target_position=target_pos)
         for i in self.children:
             i.setup(self.logger)
 
@@ -239,7 +237,7 @@ class GoToTarget(py_trees.composites.Selector):
 class AlreadyAtTarget(py_trees.behaviour.Behaviour):
     def __init__(self,threshold:float=300):
         self.threshold = threshold
-        name = "RobotAtTarget"
+        name = "AlreadyAtTarget"
         self.bb = py_trees.blackboard.Client(name=name)
 
         super().__init__(name)
@@ -248,18 +246,18 @@ class AlreadyAtTarget(py_trees.behaviour.Behaviour):
         if logger is not None:
             self.logger = logger
         # read values off mutual blackboard
-        self.bb.register_key(key="trans_pos",access=py_trees.common.Access.READ)
-        self.bb.register_key(key="target_dist",access=py_trees.common.Access.WRITE)
+        self.bb.register_key(key="robot_pos",access=py_trees.common.Access.READ)
+        self.bb.register_key(key="target_pos",access=py_trees.common.Access.READ)
         self.bb.register_key(key="vx",access=py_trees.common.Access.WRITE)
         self.bb.register_key(key="vy",access=py_trees.common.Access.WRITE)
     
     def update(self) -> py_trees.common.Status:
         # check if robot is at ball
-        trans_pos = self.bb.trans_pos
-        distance = math.sqrt(trans_pos[0]**2 + trans_pos[1]**2)
-        self.bb.target_dist = distance
-        
-        if distance <= self.threshold: 
+    
+        relative_target_arr = world2robot(robot_position=self.bb.robot_pos, target_position=self.bb.target_pos)
+        relative_distance = np.linalg.norm(relative_target_arr)
+    
+        if relative_distance <= self.threshold: 
             self.logger.info("Already At Target")
             self.bb.vx,self.bb.vy = 0,0
             return py_trees.common.Status.SUCCESS
@@ -268,11 +266,10 @@ class AlreadyAtTarget(py_trees.behaviour.Behaviour):
 
 
 class CalculateLinearVelocity(py_trees.behaviour.Behaviour):
-    def __init__(self,threshold:float,speed:float):
+    def __init__(self,mode):
         name = "CalculateLinearVelocity"
         self.bb = py_trees.blackboard.Client(name=name)
-        self.threshold = threshold
-        self.speed = speed
+        self.mode = mode
         # self.cnt = 0
         super().__init__(name)
     
@@ -281,36 +278,26 @@ class CalculateLinearVelocity(py_trees.behaviour.Behaviour):
             self.logger = logger
         # read values off mutual blackboard
         # values for calculating values
-        self.bb.register_key(key="trans_pos", access=py_trees.common.Access.READ)
-        self.bb.register_key(key="d_theta",access=py_trees.common.Access.READ)
-        self.bb.register_key(key="target_dist", access=py_trees.common.Access.READ)
+        self.bb.register_key(key="robot_pos", access=py_trees.common.Access.READ)
+        self.bb.register_key(key="target_pos", access=py_trees.common.Access.READ)
         self.bb.register_key(key="vx", access=py_trees.common.Access.WRITE)
         self.bb.register_key(key="vy", access=py_trees.common.Access.WRITE)
         
     
     def update(self) -> py_trees.common.Status:
-        trans_pos = self.bb.trans_pos
-        angle_diff = self.bb.d_theta
+        vx,vy= go_to_target(robot_pos=self.bb.robot_pos,
+                            target_pos=self.bb.target_pos,
+                            mode=self.mode)
+        
+        # assign to blackboard
+        self.bb.vx = vx
+        self.bb.vy = vy
 
-        distance = self.bb.target_dist
-        if abs(angle_diff) > 0.1 :
-            self.threshold = 200 
-        else:
-            self.threshold = 70 
-        speed = RobotMovement.threshold_zone(distance,MAX_SPEED)
-        
-        # print(distance)
-        if distance > self.threshold:
-            self.bb.vy:float = (trans_pos[1] / distance) * speed
-            self.bb.vx:float = (trans_pos[0] / distance) * speed
-        else:
-            self.bb.vx =0 
-            self.bb.vy =0 
-        return py_trees.common.Status.SUCCESS
-        
-        # otherwise this is failure
-        print("[CalculateRobotToBall] threshold error")
-        return py_trees.common.Status.FAILURE
+        # log for debug
+        self.logger.info(f"Calculated velocity: vx={vx:.2f}, vy={vy:.2f}")
+
+        # always return a valid status
+        return py_trees.common.Status.SUCCESS    
 
 class DoDribbleKick(py_trees.behaviour.Behaviour):
     def __init__(self, speed:float,dribble_threshold:float,kick_threshold:float,kick_angle:float):
