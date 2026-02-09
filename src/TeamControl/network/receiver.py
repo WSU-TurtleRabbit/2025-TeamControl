@@ -53,7 +53,7 @@ class Receiver(BaseSocket):
         print(f"{self.__class__.__name__} has stopped listening")
         return result
     
-    def listen_for(duration:int) -> tuple[str, tuple[str, int]] | tuple[None,None] :
+    def listen_for(self,duration:int) -> tuple[str, tuple[str, int]] | tuple[None,None] :
         result = None,None
         end_time = time.time() + duration
         while time.time() < end_time:
@@ -63,7 +63,7 @@ class Receiver(BaseSocket):
                 # decode
                 last_message = self._decode(message)
                 # update variable
-                result = last_message, self.last_addr
+                result = last_message, addr
                 active = False
             except socket.timeout:
                 # print("timeout")

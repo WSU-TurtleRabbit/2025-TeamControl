@@ -9,7 +9,7 @@ import typing
 import py_trees
 
 
-def run_bt_process(is_running:Event,wm:WorldModel, dispatcher_q:Queue)->None:
+def run_bt_process(is_running:Event, wm:WorldModel, dispatcher_q:Queue)->None:
     """
     Run a behaviour tree in a separate process.
 

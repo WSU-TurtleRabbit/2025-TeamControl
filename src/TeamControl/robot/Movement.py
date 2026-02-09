@@ -30,32 +30,38 @@ class RobotMovement:
         return vx, vy, w
 
     @staticmethod
-    def turn_to_target(target:tuple[float,float] =None, epsilon: float=0.15, speed: float = 0.005, robotOmega = None):
+    def turn_to_target(target:tuple[float,float] =None, epsilon: float=0.1, speed: float = 1, d_time:float = 1):
         '''
             This function returns an agular velocity. The goal is to turn the robot
             in such a way that it is facing the ball with its kicker side.
 
             input: 
-                ball_position: ball position in the robot coordinate systen (e.g. (10mm,50mm))
+                target: the relative target postition format: (x,y)
                 epsilon: Threshold for the orientation (orientation does not have to be zero to 
                         consider it correct -> avoids jitter)
+                speed: the average default speed 
+                d_time : the time scaler for how fast we want to turn while going
         '''
         if target is None:
             return 0.0
 
         # Correct orientation for robot coordinate frame
         angle = math.atan2(target[1], target[0])
-
-        # Avoid jitter
-        if abs(angle) < epsilon:
-            omega = 0.0
-        elif abs(angle) < 2 * epsilon:
-            omega = speed * math.copysign(0.05, angle)
+        
+        if abs(angle)<epsilon:
+            omega=0.0
+        elif abs(angle)<0.18:
+            omega=speed*math.copysign(1, angle)
+        elif abs(angle)<0.7:
+            omega=speed*2*math.copysign(1, angle)
+        elif abs(angle)<1.57:
+            omega=speed*3*math.copysign(1, angle)
         else:
-            omega = speed * math.copysign(0.5, angle)
-
+            omega=speed*4*math.copysign(1, angle)
+            
         return omega
-    
+
+        
     
     @staticmethod
     def behind_ball_point(ball, goal, buffer_radius):
@@ -113,7 +119,7 @@ class RobotMovement:
         
 
         dist = math.hypot(target_pos[0], target_pos[1])
-        speed = RobotMovement.threshold_zone(dist,speed)
+        speed = RobotMovement.threshold_zone(dist,max_speed=speed)
         
         
         if dist<=0.0:

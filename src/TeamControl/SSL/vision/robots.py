@@ -66,7 +66,7 @@ class Robot:
         # return Obstacle(top_left, bottom_right)
     
         return Obstacle(point=(self.x,self.y),
-                        radius=90,
+                        radius=180,
                         unum=self.id,
                         isYellow=self.isYellow)    
     
