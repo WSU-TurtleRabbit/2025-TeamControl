@@ -26,9 +26,13 @@ from multiprocessing import Process, Queue,Event
 # use this to catch keyboard interrupt
 import sys
 
+import random
+
 import time
 
 def main():
+    # set a seed for testing random behaviour selection
+    # random.seed(time.time_ns())
     # add a timer
     start_time = time.time()
     preset = Config()
@@ -52,7 +56,7 @@ def main():
     wm_manager.start()
     wm = wm_manager.WorldModel()
     
-    
+
     # processes
     wmr = Process(target=WMWorker.run_worker, args=(is_running,logger,wm,vision_q,gc_q),)
     vision_wkr = Process(target=VisionProcess.run_worker, args=(is_running,logger,vision_q,preset.use_grSim_vision,preset.vision[1]),)

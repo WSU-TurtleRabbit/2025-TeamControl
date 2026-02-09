@@ -1,6 +1,6 @@
 from TeamControl.network.robot_command import RobotCommand
 import py_trees
-
+import random
 
 class GetWorldPositionUpdate(py_trees.behaviour.Behaviour):
     def __init__(self,wm,isYellow=True):
@@ -45,13 +45,10 @@ class GetWorldPositionUpdate(py_trees.behaviour.Behaviour):
 
 # mock behaviour for testing main tree
 class GetBallPosition(py_trees.behaviour.Behaviour):
-    # where condition represents the condition for the behaviour to succeed
-    # condition = 0 : always fail
-    # condition = 1 : always succeed
-    def __init__(self, robot_id, condition:int=0):
+    def __init__(self, robot_id):
         name = f"GetBallPosition (Robot ID {robot_id})"
         self.robot_id = robot_id
-        self.condition = condition
+        self.condition = random.randint(0, 1) # 0: failure, 1: success
         super().__init__(name)
         
     def setup(self,logger=None):
@@ -65,11 +62,11 @@ class GetBallPosition(py_trees.behaviour.Behaviour):
         ball_pos = self.bb.ball_pos
         if ball_pos is not None and self.condition == 1:
             self.bb.ball_position = ball_pos
-            self.logger.info(f"[GetBallPosition] Ball position: {ball_pos}\nCondition: {self.condition}")
+            self.logger.info(f"[GetBallPosition] Ball position: {ball_pos}\tCONDITION PASS")
             return py_trees.common.Status.SUCCESS
         else:
             self.bb.ball_position = (0,0)
-            self.logger.info(f"[GetBallPosition] Failed to get ball position.\nCondition: {self.condition}")
+            # self.logger.info(f"[GetBallPosition] Failed to get ball position. CONDITION: {self.condition}")
             return py_trees.common.Status.FAILURE
 
 class SendRobotCommand(py_trees.behaviour.Behaviour):

@@ -16,6 +16,10 @@ RUNNING = "RUNNING"
 STOPPED = "STOPPED"
 HALTED = "HALTED"
 
+# Generic markers for success/fail
+FAIL = 0
+SUCCESS = 1
+
 # only one of the required states is needed, so we can use a selector
 class MainTree(py_trees.composites.Sequence):
     def __init__(self, wm, dispatch_q, logger=None):
@@ -26,7 +30,7 @@ class MainTree(py_trees.composites.Sequence):
         if logger is not None:
             self.logger = logger
         
-        print("Debug: MainTree initialized")
+        # print("Debug: MainTree initialized")
     
     # def setup(self):
         subtrees = []
@@ -48,7 +52,7 @@ class MainTree(py_trees.composites.Sequence):
         parallel_bt = ParallelBT(robot_subtrees=subtrees)
 
         self.add_children([
-            GetState(state_for_testing="RUNNING"),
+            GetState(state_for_testing=RUNNING),
             GetWorldPositionUpdate(wm=self.wm),
             parallel_bt
         ])
@@ -67,7 +71,7 @@ class StateTree(py_trees.composites.Selector):
         self.wm = wm
         self.dispatch_q = dispatch_q
         self.logger = logger
-        print("Debug: StateTree initialized")
+        # print("Debug: StateTree initialized")
         
     # def setup(self):
         self.add_children([
@@ -88,7 +92,7 @@ class RunTree(py_trees.composites.Sequence):
         self.dispatch_q = dispatch_q
         self.robot_id = robot_id
         # self.logger = logger
-        print("Debug: RunTree initialized")
+        # print("Debug: RunTree initialized")
         
     # def setup(self):
         self.add_children([
@@ -119,7 +123,7 @@ class HaltTree(py_trees.composites.Sequence):
         self.dispatch_q = dispatch_q
         self.robot_id = robot_id
         # self.logger = logger
-        print("Debug: HaltTree initialized")
+        # print("Debug: HaltTree initialized")
         
     # def setup(self):
         self.add_children([
@@ -150,7 +154,7 @@ class StopTree(py_trees.composites.Sequence):
         self.dispatch_q = dispatch_q
         self.robot_id = robot_id
         # self.logger = logger
-        print("Debug: StopTree initialized")
+        # print("Debug: StopTree initialized")
         
     # def setup(self):
         self.add_children([
@@ -173,6 +177,38 @@ class StopTree(py_trees.composites.Sequence):
         for c in self.children:
             c.setup()
 
+# necessary for choosing different children in running subtree
+class CheckCondition(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        name = "CheckCondition"
+        super(CheckCondition, self).__init__(name=name)
+        self.bb = py_trees.blackboard.Client(name=name)
+    
+    def setup(self):
+        self.bb.register_key(key="condition", access=py_trees.common.Access.WRITE)
+        self.bb.condition = random.randint(0, 1) # randomly choose success or fail
+
+    def update(self) -> py_trees.common.Status:
+        if self.bb.condition == SUCCESS:
+            return py_trees.common.Status.SUCCESS
+        elif self.bb.condition == FAIL or self.bb.condition is None:
+            return py_trees.common.Status.FAILURE
+
+class RunningTreeTest(py_trees.composites.Sequence):
+    def __init__(self, robot_id):
+        name = "RunningTestTree"
+        super(RunningTreeTest, self).__init__(name=name,memory=True)
+        self.robot_id = robot_id
+
+        self.add_children([
+            CheckCondition(),
+            GetBallPosition(robot_id=self.robot_id)
+        ])
+
+    def initialise(self):
+        for c in self.children:
+            c.setup()
+
 # this is the subtree responsible for handling the running sequence (GetWorldPositionUpdate + ParallelBT)
 # testing: this is a selector (randomly choose one behaviour and display result)
 class RunningTreeSeq(py_trees.composites.Selector):
@@ -183,7 +219,7 @@ class RunningTreeSeq(py_trees.composites.Selector):
         self.dispatch_q = dispatch_q
         self.robot_id = robot_id
         # self.logger = logger
-        print("Debug: RunningTreeSeq initialized")
+        # print("Debug: RunningTreeSeq initialized")
         
     # def setup(self):
         # create subtrees for each robot
@@ -198,19 +234,12 @@ class RunningTreeSeq(py_trees.composites.Selector):
             # in this case, the subtree is only a single behaviour, but it could be more complex
             # subtree = GetRobotIDPosition(robot_id=robot_id)
             # subtrees.append(subtree)
-        
-        # parallel_bt = ParallelBT(subtrees=subtrees)
-        # self.add_child(parallel_bt)
-
-        # parallel_bt = ParallelBT(robot_subtrees=subtrees)
-
-        # TEST: randomly choose one behaviour to add
-        x = random.randint(0, 1)
 
         self.add_children([
-            GetBallPosition(condition=x, robot_id=self.robot_id), # see common_trees.py for details
-            GetRobotIDPosition(robot_id=self.robot_id)
+            RunningTreeTest(robot_id=self.robot_id),
+            GetRobotIDPosition(robot_id=self.robot_id)           
         ])
+
 
     def update(self) -> py_trees.common.Status:
         # For now, just return SUCCESS
@@ -231,7 +260,7 @@ class ParallelBT(py_trees.composites.Parallel):
         super().__init__(name, policy)
         self.robot_subtrees = robot_subtrees
         self.create_children()
-        print("Debug: ParallelBT initialized")
+        # print("Debug: ParallelBT initialized")
         
     def setup(self):
         super().setup()
@@ -268,7 +297,7 @@ class HaltedTreeSeq(py_trees.composites.Sequence):
         self.wm = wm
         self.dispatch_q = dispatch_q
         # self.logger = logger
-        print("Debug: HaltedTreeSeq initialized")
+        # print("Debug: HaltedTreeSeq initialized")
     
     # def setup(self):
         # self.add_children([
@@ -291,7 +320,7 @@ class StopTreeSeq(py_trees.composites.Sequence):
         self.wm = wm
         self.dispatch_q = dispatch_q
         # self.logger = logger
-        print("Debug: StopTreeSeq initialized")
+        # print("Debug: StopTreeSeq initialized")
     
     # def setup(self):
         # self.add_children([
@@ -309,13 +338,13 @@ class StopTreeSeq(py_trees.composites.Sequence):
 #########################################################
 
 class GetState(py_trees.behaviour.Behaviour):
-    def __init__(self, state_for_testing="RUNNING"):
+    def __init__(self, state_for_testing=RUNNING):
         name = "GetState"
         super(GetState, self).__init__(name)
         # self.wm = wm
         self.bb = py_trees.blackboard.Client(name=name)
         self.state_for_testing = state_for_testing
-        print("Debug: GetState initialized")
+        # print("Debug: GetState initialized")
 
     def setup(self):
         super().setup()
@@ -330,11 +359,11 @@ class GetState(py_trees.behaviour.Behaviour):
         # handle cases (stop, running, halted)
         if self.bb.game_state is None:
             return py_trees.common.Status.FAILURE
-        elif self.bb.game_state == "STOPPED":
+        elif self.bb.game_state == STOPPED:
             return py_trees.common.Status.SUCCESS
-        elif self.bb.game_state == "RUNNING":
+        elif self.bb.game_state == RUNNING:
             return py_trees.common.Status.SUCCESS
-        elif self.bb.game_state == "HALTED":
+        elif self.bb.game_state == HALTED:
             return py_trees.common.Status.SUCCESS
         else:
             print("Unknown Game State:", self.bb.game_state, 
@@ -355,14 +384,14 @@ class IsRunning(py_trees.behaviour.Behaviour):
         self.bb = py_trees.blackboard.Client(name=name)
         # initialise isRunning to false
         self.isRunning = False
-        print("Debug: IsRunning initialized")
+        # print("Debug: IsRunning initialized")
 
     def setup(self):
         super().setup()
         self.bb.register_key(key="game_state", access=py_trees.common.Access.READ)
 
     def update(self):
-        self.isRunning = self.bb.game_state == "RUNNING"
+        self.isRunning = self.bb.game_state == RUNNING
         if self.isRunning:
             return py_trees.common.Status.SUCCESS
         else:
@@ -381,7 +410,7 @@ class IsStopped(py_trees.behaviour.Behaviour):
         self.bb.register_key(key="game_state", access=py_trees.common.Access.READ)
 
     def update(self):
-        self.isStopped = self.bb.game_state == "STOPPED"
+        self.isStopped = self.bb.game_state == STOPPED
         if self.isStopped:
             return py_trees.common.Status.SUCCESS
         else:
@@ -400,7 +429,7 @@ class IsHalted(py_trees.behaviour.Behaviour):
         self.bb.register_key(key="game_state", access=py_trees.common.Access.READ)
 
     def update(self):
-        self.isHalted = self.bb.game_state == "HALTED"
+        self.isHalted = self.bb.game_state == HALTED
         if self.isHalted:
             return py_trees.common.Status.SUCCESS
         else: 
