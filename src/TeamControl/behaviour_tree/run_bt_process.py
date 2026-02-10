@@ -9,9 +9,6 @@ from TeamControl.utils.Logger import LogSaver
 import typing
 import py_trees
 
-from old_stuff.blackboard import bb
-
-
 def run_bt_process(is_running:Event, wm:WorldModel, dispatcher_q:Queue)->None:
     """
     Run a behaviour tree in a separate process.
