@@ -8,10 +8,12 @@ from TeamControl.behaviour_tree.velocity import go_to_target
 
 
 class StopSequence(py_trees.composites.Sequence):
-    def __init__(self):
-        super(StopSequence, self).__init__(name="StopSequence", memory=False)
+    def __init__(self, robot_id, dispatcher_q):
+        super(StopSequence, self).__init__(name=f"StopSequence (RobotID:{robot_id})", memory=False)
+        self.robot_id = robot_id
+        self.dispatcher_q = dispatcher_q
         # self.bb = py_trees.blackboard.Client(name="StopSequence")
-        self.add_children([StopRobot(), MoveawayFromBall(150)])
+        self.add_children([StopRobot(robot_id=self.robot_id, dispatcher_q=self.dispatcher_q), MoveawayFromBall(150)])
 
 
 class MoveawayFromBall(py_trees.behaviour.Behaviour):
@@ -19,6 +21,8 @@ class MoveawayFromBall(py_trees.behaviour.Behaviour):
         super(MoveawayFromBall, self).__init__(name="MoveawayFromBall")
         self.distance_threshold = distance_threshold
         self.bb = py_trees.blackboard.Client(name="MoveawayFromBall")
+        
+    def setup(self):
         self.bb.register_key(key="robot_pos", access=py_trees.common.Access.READ)
         self.bb.register_key(key="ball_pos", access=py_trees.common.Access.READ)
         self.bb.register_key(key="cmd_mgr", access=py_trees.common.Access.READ)
@@ -38,7 +42,7 @@ class MoveawayFromBall(py_trees.behaviour.Behaviour):
 
         if np.allclose(target_pos, robot_pos[:2]):
             cmd = {"vx": 0.0, "vy": 0.0}
-            self.bb.cmd_mgr.update_command(cmd)
+            self.bb.cmd_mgr.update_command(**cmd)
             is_sent = self.bb.cmd_mgr.pack_and_send()
             if is_sent:
                 return Status.SUCCESS

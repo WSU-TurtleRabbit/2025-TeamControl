@@ -1,4 +1,5 @@
 from TeamControl.network.robot_command import RobotCommand
+from TeamControl.behaviour_tree.cmd_mgr import CommandManager 
 import py_trees
 import random
 
@@ -13,19 +14,25 @@ class GetWorldPositionUpdate(py_trees.behaviour.Behaviour):
         if logger is not None: # use this instead
             self.logger = logger 
         self.version = self.wm.get_version()
-        self.frame = None
-        self.ball_last_known = (0,0)
+        self.frame = self.wm.get_latest_frame()
+        # self.ball_last_known = (0,0)
         self.bb = py_trees.blackboard.Client(name="GetWorldPositionUpdate")
         self.bb.register_key(key="ball_pos", access=py_trees.common.Access.WRITE)
         self.bb.register_key(key="our_robots", access=py_trees.common.Access.WRITE)
         self.bb.register_key(key="isYellow", access=py_trees.common.Access.WRITE)
         self.bb.isYellow = self.isYellow
+        self.bb.ball_pos = (0,0)
+        if self.frame is not None:
+            self.bb.our_robots = self.frame.get_yellow_robots(isYellow=self.isYellow)
+        else: 
+            self.bb.our_robots = None
+        print(f"[GetWorldPositionUpdate] is self.frame() None?  {self.frame == None}")
 
     def initialise(self):
         pass
         
     def update(self) -> py_trees.common.Status:
-        self.isYellow = self.bb.isYellow    
+        self.isYellow = self.bb.isYellow   
 
         new_version = self.wm.get_version()
         if self.version < new_version:
@@ -33,11 +40,11 @@ class GetWorldPositionUpdate(py_trees.behaviour.Behaviour):
             self.frame = self.wm.get_latest_frame()
             if self.frame is not None:
                 if self.frame.ball is not None:
-                    self.ball_last_known = self.frame.ball.position
-                    self.bb.ball_pos = self.ball_last_known
-                    print(self.ball_last_known)
-                    our_robots = self.frame.get_yellow_robots(isYellow=self.isYellow)
-                    self.bb.our_robots = our_robots
+                    # self.ball_last_known = self.frame.ball.position
+                    # self.bb.ball_pos = self.ball_last_known
+                    # print(self.ball_last_known)
+                    self.bb.ball_pos = self.frame.ball.position
+                    self.bb.our_robots = self.frame.get_yellow_robots(isYellow=self.isYellow)
                     
             return py_trees.common.Status.SUCCESS
         # otherwise keep running
@@ -56,16 +63,16 @@ class GetBallPosition(py_trees.behaviour.Behaviour):
             self.logger = logger
         self.bb = py_trees.blackboard.Client(name="GetBallPosition")
         self.bb.register_key(key="ball_pos", access=py_trees.common.Access.READ)
-        self.bb.register_key(key="ball_position", access=py_trees.common.Access.WRITE)
+        # self.bb.register_key(key="ball_position", access=py_trees.common.Access.WRITE)
         
     def update(self) -> py_trees.common.Status:
         ball_pos = self.bb.ball_pos
         if ball_pos is not None and self.condition == 1:
-            self.bb.ball_position = ball_pos
+            # self.bb.ball_position = ball_pos
             self.logger.info(f"[GetBallPosition] Ball position: {ball_pos}\tCONDITION PASS")
             return py_trees.common.Status.SUCCESS
         else:
-            self.bb.ball_position = (0,0)
+            # self.bb.ball_position = (0,0)
             # self.logger.info(f"[GetBallPosition] Failed to get ball position. CONDITION: {self.condition}")
             return py_trees.common.Status.FAILURE
 

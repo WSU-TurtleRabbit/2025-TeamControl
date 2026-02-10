@@ -35,10 +35,10 @@ import random
 import time
 
 def main():
-    # set a seed for testing random behaviour selection
-    # random.seed(time.time_ns())
     # add a timer
     start_time = time.time()
+    # set a seed for testing random behaviour selection
+    # random.seed(start_time)
     preset = Config()
     
     # queues
