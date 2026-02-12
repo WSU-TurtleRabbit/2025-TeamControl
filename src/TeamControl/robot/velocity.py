@@ -24,12 +24,16 @@ class Mode(Enum):
     Fast = auto()
 
 
-def angle_between(robot_pos, target_pos):
+def angle_between(robot_pos, target_pos) -> float:
     direction_2d = world2robot(robot_pos, target_pos)
     angle = np.arctan2(direction_2d[1], direction_2d[0])
     return angle
 
-
+def distance_between(robot_pos,target_pos) -> float:
+    relative_target_arr = world2robot(robot_pos, target_pos)
+    relative_distance = np.linalg.norm(relative_target_arr)
+    return relative_distance
+    
 def clamp(low, high, value):
     return max(low, min(high, value))
 
@@ -114,8 +118,8 @@ def select_angular_speed(relative_angle, mode: Mode):
     return speed
 
 
-def turn_to_target(robot_pos, target_pos, mode: Mode) -> float:
-    angle = angle_between(robot_pos, target_pos)
+def turn_to_angle(angle, mode: Mode) -> float:
+    # angle = angle_between(robot_pos, target_pos)
     speed = select_angular_speed(angle, mode)
     return calculate_angular_velocity(relative_angle=angle, speed=speed)
 
