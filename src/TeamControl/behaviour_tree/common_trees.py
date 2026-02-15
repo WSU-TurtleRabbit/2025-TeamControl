@@ -166,4 +166,120 @@ class GetRobotIDPosition(py_trees.behaviour.Behaviour):
             # otherwise 0,0
             self.bb.robot_pos = (0,0)
             return py_trees.common.Status.FAILURE
+
+
+################# PLACEHOLDERS ###################
+
+class GoToBall(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        name = "GoToBall"
+        super().__init__(name)
+        
+    def setup(self):
+        pass
+    
+    def update(self) -> py_trees.common.Status:
+        # this is where the go to ball logic will go
+        # simple random success/failure
+        if random.randint(0,1) == 1:
+            print("[GoToBall] Successfully went to the ball!")
+            return py_trees.common.Status.SUCCESS
+        else:
+            print("[GoToBall] Failed to go to the ball.")
+            return py_trees.common.Status.FAILURE
+
+class GoToFormation(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        name = "GoToFormation"
+        super().__init__(name)
+        
+    def setup(self):
+        pass
+    
+    def update(self) -> py_trees.common.Status:
+        if random.randint(0,1) == 1:
+            print("[GoToFormation] Successfully went to formation!")
+            return py_trees.common.Status.SUCCESS
+        else:
+            print("[GoToFormation] Failed to go to formation.")
+            return py_trees.common.Status.FAILURE
  
+class GoToInterception(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        name = "GoToInterception"
+        super().__init__(name)
+        
+    def setup(self):
+        pass
+    
+    def update(self) -> py_trees.common.Status:
+        if random.randint(0,1) == 1:
+            print("[GoToInterception] Successfully went to interception!")
+            return py_trees.common.Status.SUCCESS
+        else:
+            print("[GoToInterception] Failed to go to interception.")
+            return py_trees.common.Status.FAILURE
+
+class PassBall(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        name = "PassBall"
+        super().__init__(name)
+        
+    def setup(self):
+        pass
+    
+    def update(self) -> py_trees.common.Status:
+        if random.randint(0,1) == 1:
+            print("[PassBall] Successfully passed the ball!")
+            return py_trees.common.Status.SUCCESS
+        else:
+            print("[PassBall] Failed to pass the ball.")
+            return py_trees.common.Status.FAILURE   
+        
+class GetBall(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        name = "GetBall"
+        super().__init__(name)
+        
+    def setup(self):
+        pass
+    
+    def update(self) -> py_trees.common.Status:
+        if random.randint(0,1) == 1:
+            print("[GetBall] Successfully got the ball!")
+            return py_trees.common.Status.SUCCESS
+        else:
+            print("[GetBall] Failed to get the ball.")
+            return py_trees.common.Status.FAILURE   
+        
+class RotateWithBall(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        name = "RotateWithBall"
+        super().__init__(name)
+        
+    def setup(self):
+        pass
+    
+    def update(self) -> py_trees.common.Status:
+        if random.randint(0,1) == 1:
+            print("[RotateWithBall] Successfully rotated with the ball!")
+            return py_trees.common.Status.SUCCESS
+        else:
+            print("[RotateWithBall] Failed to rotate with the ball.")
+            return py_trees.common.Status.FAILURE
+
+class KickBall(py_trees.behaviour.Behaviour):
+    def __init__(self):
+        name = "KickBall"
+        super().__init__(name)
+        
+    def setup(self):
+        pass
+    
+    def update(self) -> py_trees.common.Status:
+        if random.randint(0,1) == 1:
+            print("[KickBall] Successfully kicked the ball!")
+            return py_trees.common.Status.SUCCESS
+        else:
+            print("[KickBall] Failed to kick the ball.")
+            return py_trees.common.Status.FAILURE

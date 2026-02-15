@@ -26,7 +26,7 @@ def run_bt_process(is_running:Event, wm:WorldModel, dispatcher_q:Queue)->None:
     # root = GoToBallSequence(wm,dispatcher_q,logger)
     # randomly choose a state for testing
     # state = random.choice(["RUNNING", "HALTED", "STOPPED"])
-    state = "HALTED"
+    state = "STOPPED"
     # print(f"[run_bt_process] Chosen state for testing: {state}")
     root = MainTree(wm, dispatcher_q, state, logger)
     bt = py_trees.trees.BehaviourTree(root)

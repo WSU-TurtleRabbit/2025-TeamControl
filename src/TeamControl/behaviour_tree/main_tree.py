@@ -7,7 +7,7 @@ Each "behaviour" in this case is really a subtree that handles a robot.
 This simulates a multi-agent behaviour tree.
 '''
 
-from TeamControl.behaviour_tree.common_trees import GetRobotIDPosition, GetWorldPositionUpdate, GetBallPosition
+from TeamControl.behaviour_tree.common_trees import *
 from TeamControl.behaviour_tree.halt_sequence import *
 from TeamControl.behaviour_tree.stop_sequence import *
 from TeamControl.behaviour_tree.cmd_mgr import CommandManager
@@ -22,6 +22,17 @@ HALTED = "HALTED"
 # Generic markers for success/fail
 FAIL = 0
 SUCCESS = 1
+
+# list of placeholder actions
+ACTIONS = [
+        GoToBall(),
+        GoToFormation(),
+        GoToInterception(),
+        PassBall(),
+        GetBall(),
+        RotateWithBall(),
+        KickBall()
+    ]
 
 # only one of the required states is needed, so we can use a selector
 class MainTree(py_trees.composites.Sequence):
@@ -104,7 +115,7 @@ class RunTree(py_trees.composites.Sequence):
         
         self.add_children([
             IsRunning(),
-            RunningTreeSeq(wm=self.wm, dispatch_q=self.dispatch_q, robot_id=self.robot_id)
+            RunningSequence(wm=self.wm, dispatch_q=self.dispatch_q, robot_id=self.robot_id)
         ])
 
     def setup(self, **kwargs):
@@ -265,10 +276,10 @@ class CheckCondition(py_trees.behaviour.Behaviour):
         elif self.bb.condition == FAIL or self.bb.condition is None:
             return py_trees.common.Status.FAILURE
 
-class RunningTreeTest(py_trees.composites.Sequence):
+class ChooseRandomBehaviour(py_trees.composites.Sequence):
     def __init__(self, robot_id):
         name = "ChooseRandomBehaviour"
-        super(RunningTreeTest, self).__init__(name=name,memory=True)
+        super(ChooseRandomBehaviour, self).__init__(name=name,memory=True)
         self.robot_id = robot_id
 
         self.add_children([
@@ -282,15 +293,15 @@ class RunningTreeTest(py_trees.composites.Sequence):
 
 # this is the subtree responsible for handling the running sequence (GetWorldPositionUpdate + ParallelBT)
 # testing: this is a selector (randomly choose one behaviour and display result)
-class RunningTreeSeq(py_trees.composites.Selector):
+class RunningSequence(py_trees.composites.Selector):
     def __init__(self, wm, dispatch_q, robot_id):
-        name = "RunningTreeSeq"
-        super(RunningTreeSeq, self).__init__(name=name,memory=True)
+        name = "RunningSequence"
+        super(RunningSequence, self).__init__(name=name,memory=True)
         self.wm = wm
         self.dispatch_q = dispatch_q
         self.robot_id = robot_id
         # self.logger = logger
-        # print("Debug: RunningTreeSeq initialized")
+        # print("Debug: RunningSequence initialized")
         
     # def setup(self):
         # create subtrees for each robot
@@ -307,7 +318,7 @@ class RunningTreeSeq(py_trees.composites.Selector):
             # subtrees.append(subtree)
 
         self.add_children([
-            RunningTreeTest(robot_id=self.robot_id),
+            ChooseRandomBehaviour(robot_id=self.robot_id),
             GetRobotIDPosition(robot_id=self.robot_id)           
         ])
 
@@ -506,7 +517,7 @@ class IsHalted(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.SUCCESS
         else: 
             return py_trees.common.Status.FAILURE
-        
+
 ######################################################
 
 if __name__ == "__main__":
@@ -527,10 +538,12 @@ if __name__ == "__main__":
 
     logger = LogSaver()
     
-    # main_tree = MainTree(wm=wm, dispatch_q=dispatch_q, state=STATE, logger=logger)
-    # bt = py_trees.trees.BehaviourTree(main_tree)
-    # bt.setup(timeout=15)
-    # bt.tick()
+    main_tree = MainTree(wm=wm, dispatch_q=dispatch_q, state=STATE, logger=logger)
+    bt = py_trees.trees.BehaviourTree(main_tree)
+    bt.setup(timeout=15)
+    bt.tick()
+
+    main_tree.print_tree()
 
     # bb = py_trees.blackboard.Blackboard()
     # for key in bb.keys():
