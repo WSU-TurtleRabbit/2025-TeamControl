@@ -42,7 +42,6 @@ class VisionProcess():
                 new_detection_data = new_vision_data.detection
                 if self.frame_number < new_detection_data.frame_number:
                     self.logs.info(f"{new_detection_data.frame_number=}")
-                    self.logs.info(f"{new_detection_data.frame_number=}")
                     # generates new frame
                     self.frame = Frame.from_proto(new_detection_data,self.cameras)
                     self.frame_number = self.frame.frame_number
@@ -66,8 +65,6 @@ class VisionProcess():
 def vision_worker(output_q:Queue,use_grSim:bool=True,vision_port=10006):
     logs = LogSaver()
     v = VisionProcess(output_q,logs,use_grSim,vision_port)
-    logs = LogSaver()
-    v = VisionProcess(output_q,logs,use_grSim,vision_port)
     v.run()
 
 if __name__ == "__main__" :
@@ -75,7 +72,7 @@ if __name__ == "__main__" :
         while True:
             if not input_q.empty():
                 item = input_q.get_nowait()
-                # print(type(item))
+                print(type(item))
                 # print(type(item))
             
     output_q = Queue()

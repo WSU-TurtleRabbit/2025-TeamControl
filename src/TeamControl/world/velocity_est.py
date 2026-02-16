@@ -44,7 +44,7 @@ def velocity_est(ball_hist, fps = 60):
     vy = num_y/den
 
     print (f"Velocity Estimation: f{vx, vy}")
-    return vx, vy 
+    return np.sqrt(vx**2 + vy**2) 
 
 
 

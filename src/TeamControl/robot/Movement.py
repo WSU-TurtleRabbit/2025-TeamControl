@@ -35,7 +35,7 @@ class RobotMovement():
         return vx, vy, w
     
     @classmethod
-    def goShootVelcoity(cls, robot_pos:tuple[float, float,float], target: tuple[float, float]):
+    def goShootVelocity(cls, robot_pos:tuple[float, float,float], target: tuple[float, float]):
         shooting_position = cls.shooting_pos(target)
         vx, vy, w = cls.velocity_to_target(robot_pos, shooting_position, target)
         return vx, vy, w

@@ -2,7 +2,7 @@ from TeamControl.network.ssl_sockets import grSimSender
 from TeamControl.network.robot_command import RobotCommand 
 from TeamControl.robot.Movement import RobotMovement
 
-from TeamControl.world.time_to_intercept import time_to_intercept
+from TeamControl.world.velocity_to_intercept import time_to_intercept
 from TeamControl.world.velocity_est import velocity_est
 
 class GrSimSandbox:

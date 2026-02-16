@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from enum import Enum,auto
 # PARAMETERSAG
-GOAL_WIDTH = 2760  # mm - Update this value based on actual goal width
+GOAL_WIDTH = 1300  # mm - Update this value based on actual goal width
 FIELD_WIDTH = 2760  # mm
 FIELD_LENGTH = 5040  # mm
 FRAME_RATE = 60  # Hz
-GOALIE_LINE = -1200  # mm
+GOALIE_LINE = 1200  # mm
 
 class TrajectoryType(Enum):
     MOVE_AWAY_FROM_GOAL = auto() # "Moving away from the goal"
@@ -91,7 +91,7 @@ def predict_trajectory(history, num_samples, calculate_velocity=False):
     '''
     # ensure we have atleast 2 points to predict the line
     if len(history) < 2:
-        return None, None, None, None
+        raise AttributeError("Error")
 
     # extract x and y coordinates from history
     ball_positions_x = [coord[0] for coord in history]
@@ -148,7 +148,6 @@ def predict_trajectory(history, num_samples, calculate_velocity=False):
         "velocity": velocity
     }
    
-
 def goal_intersection(trajectory_y_at_goal_line):
     """
     This function checks whether estimated ball trajectory intersects the goal line
