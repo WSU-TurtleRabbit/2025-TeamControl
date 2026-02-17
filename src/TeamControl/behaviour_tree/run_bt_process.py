@@ -25,9 +25,9 @@ def run_bt_process(is_running:Event, wm:WorldModel, dispatcher_q:Queue)->None:
     # root = TestTreeSeq(wm=wm,dispatcher_q=dispatcher_q,robot_id=5,isYellow=isYellow,logger=logger)
     # root = GoToBallSequence(wm,dispatcher_q,logger)
     # randomly choose a state for testing
-    # state = random.choice(["RUNNING", "HALTED", "STOPPED"])
-    state = "STOPPED"
-    # print(f"[run_bt_process] Chosen state for testing: {state}")
+    # get state from the world model
+    state = wm.get_game_state()
+    print(f"[run_bt_process] Chosen state for testing: {state}")
     root = MainTree(wm, dispatcher_q, state, logger)
     bt = py_trees.trees.BehaviourTree(root)
     bt.setup(timeout=15) # remember to add timeout

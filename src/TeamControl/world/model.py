@@ -114,6 +114,7 @@ class WorldModel:
         return self.blf_location
     
     def get_game_state(self):
+        # print(f"[WorldModel] get_game_state: GameState: {self._state}")
         return self._state
 
     def us_yellow(self):

@@ -11,7 +11,6 @@ from enum import Enum,auto
 class GCfsm (BaseWorker):
     def __init__(self,is_running,logger):
         super().__init__(is_running,logger)
-        
         self.last_ref_msg = None
         # state, command, event, stage
         self.current_command = None
@@ -39,6 +38,7 @@ class GCfsm (BaseWorker):
         self.logger.info (f"[GCP] : Setup Complete {self.output_q=}, {us_yellow=}, {us_positive=}")
         
     def step(self):
+        print(f"-> [GCfsm.step] RUNNING")
         # listen from GameControl socket
         new_data = self.recv.listen()
         # if the socket says None
@@ -46,25 +46,26 @@ class GCfsm (BaseWorker):
             self.logger.error("[GCP] received None from Socket")
             # time.sleep(1) # wait one sec
             raise AttributeError("received None from Socket") # if this is none, continue
-        
+        else:
+            print("[GCfsm] -> new_data is not None: ", new_data, "\n")
         new_ref_msg:RefereeMessage = RefereeMessage.from_proto(new_data)
         # no previous packets
         if self.last_ref_msg is not None:
             # check if the timestamp is before
             if new_ref_msg.packet_timestamp < self.last_ref_msg.packet_timestamp:
                 return
-        
-        # otherwise :
-        self.last_ref_msg = new_ref_msg
-        # check team color if this changes, basically resets everything
-        self.check_color_side(new_ref_msg)
-        # check for card and foul changes, add / remove robot from field
-        self.check_cards(new_ref_msg)
-        # check for state changes, forward new decided state (see GameState Enum)
-        self.check_state(new_ref_msg)
-        # check for game event : ball placement location (for now)
-        self.check_game_events(new_ref_msg)
-        
+        else:
+            # otherwise :
+            self.last_ref_msg = new_ref_msg
+            # check team color if this changes, basically resets everything
+            self.check_color_side(new_ref_msg)
+            # check for card and foul changes, add / remove robot from field
+            self.check_cards(new_ref_msg)
+            # check for state changes, forward new decided state (see GameState Enum)
+            state = self.check_state(new_ref_msg)
+            # check for game event : ball placement location (for now)
+            self.check_game_events(new_ref_msg)
+            print("STATE from game_controller is: ", state)
     
             
     
@@ -158,13 +159,14 @@ class GCfsm (BaseWorker):
     
     
     def check_state(self,new_ref_msg:RefereeMessage):
-        self.update_state(new_ref_msg.command, new_ref_msg.stage)
+        state = self.update_state(new_ref_msg.command, new_ref_msg.stage)
         self.current_stage = new_ref_msg.stage
         self.current_command = new_ref_msg.command
+        return state
 
     def update_state(self,command,stage):
         if not isinstance(command,Command) or not isinstance(stage,Stage):
-            return
+            print("[GCfsm.update_state] An error has occurred.")
         if command == Command.STOP:
             state = GameState.STOPPED
         elif command == Command.PREPARE_KICKOFF_YELLOW:
@@ -213,7 +215,9 @@ class GCfsm (BaseWorker):
             packet = (PacketType.NEW_STATE, state)
             print(f"new state: {state}")
             self.output_q.put(packet)
-            self.current_state = state 
+            self.current_state = state
+        
+        return state
         
 
 
@@ -236,4 +240,8 @@ class GCfsm (BaseWorker):
         if location is not None and self.last_blf_location != location:
                 packet = (PacketType.BLF_LOCATION, location)
                 self.output_q.put_nowait(packet)
-                
+
+    # what does this do?            
+    def run(self):
+        print(f"[GCfsm.run_worker] RUNNING")
+        self.step()
