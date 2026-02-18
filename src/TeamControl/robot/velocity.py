@@ -3,19 +3,34 @@ from enum import Enum, auto
 import numpy as np
 from TeamControl.world.transform_cords import world2robot
 
+# LINEAR = {
+#     "stop": [70, 0.01],
+#     "slow": [100, 0.5],
+#     "normal": [150, 1],  # avg. threshold and avg. speed
+#     "fast": [300, 2],
+# }
+
+# ANGULAR = {
+#     "stop": [0.015, 0.01],
+#     "slow": [0.05, 0.5],
+#     "normal": [0.1, 1],  # avg. threshold and avg. speed
+#     "fast": [1.0, 2],
+# }
 LINEAR = {
-    "stop": [70, 0.01],
-    "slow": [100, 0.5],
-    "normal": [150, 1],  # avg. threshold and avg. speed
-    "fast": [300, 2],
+    "stop": [150, 0.005],
+    "slow": [300, 0.05],
+    "normal": [500, 0.3],  # avg. threshold and avg. speed
+    "fast": [600, 0.9],
 }
 
+
 ANGULAR = {
-    "stop": [0.015, 0.01],
-    "slow": [0.05, 0.5],
-    "normal": [0.1, 1],  # avg. threshold and avg. speed
+    "stop": [0.015, 0.05],
+    "slow": [0.3, 0.7],
+    "normal": [0.5, 1.7],  # avg. threshold and avg. speed
     "fast": [1.0, 2],
 }
+
 
 
 class Mode(Enum):
@@ -49,6 +64,10 @@ def select_linear_speed(relative_target, mode: Mode):
         case Mode.Percision:
             if relative_target <= LINEAR["stop"][0]:
                 speed = LINEAR["stop"][1]
+                print("STOPpppPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP")
+            elif relative_target <= LINEAR["normal"][0]:
+                print("Go Normal")
+                speed = LINEAR["normal"][1]
             elif relative_target <= LINEAR["slow"][0]:
                 print("Go Slow")
                 speed = LINEAR["slow"][1]
@@ -100,6 +119,9 @@ def select_angular_speed(relative_angle, mode: Mode):
             if relative_angle <= ANGULAR["stop"][0]:
                 print("facing target")
                 speed = ANGULAR["stop"][1]
+            elif relative_angle <= ANGULAR["normal"][0]:
+                print("normal turn")
+                speed = ANGULAR["normal"][1]
             elif relative_angle <= ANGULAR["slow"][0]:
                 print("slow turn")
                 speed = ANGULAR["slow"][1]
@@ -120,6 +142,12 @@ def select_angular_speed(relative_angle, mode: Mode):
 
 def turn_to_angle(angle, mode: Mode) -> float:
     # angle = angle_between(robot_pos, target_pos)
+    speed = select_angular_speed(angle, mode)
+    return calculate_angular_velocity(relative_angle=angle, speed=speed)
+
+# naomi added for the striker code
+def turn_to_target(robot_pos, target_pos, mode: Mode) -> float:
+    angle = angle_between(robot_pos, target_pos)
     speed = select_angular_speed(angle, mode)
     return calculate_angular_velocity(relative_angle=angle, speed=speed)
 
