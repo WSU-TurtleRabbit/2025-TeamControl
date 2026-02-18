@@ -1,7 +1,9 @@
 from time import time
-from TeamControl.behaviour_tree.common_trees import GetWorldPositionUpdate,SendRobotCommand,GetRobotIDPosition
+from TeamControl.behaviour_tree.common_trees import GetWorldPositionUpdate,GetRobotIDPosition
+from TeamControl.behaviour_tree.test_tree import SendRobotCommand
 from TeamControl.behaviour_tree.goalie_tree import GetBallHistory
 from TeamControl.behaviour_tree.test_tree import GoToTarget
+from TeamControl.robot.cmd_manager import CommandManager
 from TeamControl.robot.striker import clamp
 from TeamControl.world.Trajectory import predict_trajectory
 from TeamControl.world.transform_cords import world2robot
@@ -24,18 +26,23 @@ class StrikerRunningSeq(py_trees.composites.Sequence):
     
         # use this if we have value for us on the Positive x side, otherwise use isYellow
         self.isPositive = isPositive if isPositive is not None else isYellow 
+        self.cmd_mgr = CommandManager(isYellow=isYellow,robot_id=striker_id,dispatcher_q=dispatcher_q)
+        
         self.bb = py_trees.blackboard.Client(name=name)
         super(StrikerRunningSeq, self).__init__(name=name,memory=True)
 
         
-    def setup(self):
+    def setup(self,**kwargs):
+        super().setup(**kwargs)
         # outline all variables here
         self.bb.register_key(key="robot_id", access=py_trees.common.Access.WRITE)
         self.bb.register_key(key="isYellow",access=py_trees.common.Access.WRITE)
         self.bb.register_key(key="isPositive",access=py_trees.common.Access.WRITE)
+        self.bb.register_key(key="cmd_mgr",access=py_trees.common.Access.WRITE)
         self.bb.robot_id=self.robot_id
         self.bb.isPositive = self.isPositive
         self.bb.isYellow = self.isYellow
+        self.bb.cmd_mgr = self.cmd_mgr
         
         self.add_children([
             # GetGameStatus(wm=self.wm),
@@ -45,8 +52,8 @@ class StrikerRunningSeq(py_trees.composites.Sequence):
             GetRobotIDPosition(),
             SetTargetToBall(),  # calculat target_pos
             TurnToTarget(mode=Mode.Percision),
-            GoToTarget(threshold=150.0,mode=Mode.Percision),
-            DribbleOrKick(dribble_threshold=130.0,kick_threshold=90.0,kick_angle=0.2),
+            GoToTarget(threshold=130.0,mode=Mode.Percision),
+            DribbleOrKick(dribble_threshold=150.0,kick_threshold=90.0,kick_angle=0.2),
             SendRobotCommand(dispatcher_q=self.dispatcher_q),
         ])
         
@@ -118,88 +125,73 @@ class DribbleOrKick(py_trees.composites.Selector):
         self.kick_threshold = kick_threshold
         self.kick_angle = kick_angle
         self.bb = py_trees.blackboard.Client(name=name)
+        
 
         self.add_children([
+            Kick(kick_threshold=self.kick_threshold,kick_angle=self.kick_angle),
             Dribble(dribble_threshold=self.dribble_threshold),
-            Kick(kick_threshold=self.kick_threshold,kick_angle=self.kick_angle)
+            DoNothing()
+            
         ])
         
 def Dribble(dribble_threshold:float):
-    dribble_seq = py_trees.composites.Sequence(name="Dribble Sequence",memory=True)
-    dribble_seq.add_children([
-        CanDribble(dribble_threshold=dribble_threshold),
-        DoDribble()
+    dribble_selector=py_trees.composites.Selector(name="Dribble Selector", memory=True)
+    dribble_selector.add_children([
+        YesDribble(dribble_threshold=dribble_threshold),
+        NoDribble()
     ])
-    return dribble_seq
+    return dribble_selector
         
-class CanDribble(py_trees.behaviour.Behaviour):
-    def __init__(self, dribble_threshold:float):
-        name = "Can Dribble"
-        super().__init__(name)
-        self.dribble_threshold = dribble_threshold
-        self.bb = py_trees.blackboard.Client(name=name)
+class YesDribble(py_trees.behaviour.Behaviour):
+        def __init__(self, dribble_threshold:float):
+            name = "Yes Dribble"
+            super().__init__(name)
+            self.dribble_threshold = dribble_threshold
+            self.bb = py_trees.blackboard.Client(name=name)
+            self.bb.register_key(key="robot_pos",access=py_trees.common.Access.READ)
+            self.bb.register_key(key="target_pos",access=py_trees.common.Access.READ)
+            self.bb.register_key(key="dribble",access=py_trees.common.Access.WRITE)
+            
         
-    
-    def setup(self):
-        self.bb.register_key(key="robot_pos",access=py_trees.common.Access.READ)
-        self.bb.register_key(key="target_pos",access=py_trees.common.Access.READ)
-        
-    
-    def update(self):
-        relative_target_arr = world2robot(robot_position=self.bb.robot_pos, target_position=self.bb.target_pos)
-        relative_distance = np.linalg.norm(relative_target_arr)       
-        if relative_distance <= self.dribble_threshold:
+        def update(self):
+            relative_target_arr = world2robot(robot_position=self.bb.robot_pos, target_position=self.bb.target_pos)
+            relative_distance = np.linalg.norm(relative_target_arr)       
+            if relative_distance <= self.dribble_threshold:
+                self.bb.dribble=1
+                print("yes dribble")
+                return py_trees.common.Status.SUCCESS
+            else:
+                return py_trees.common.Status.FAILURE
+            
+class NoDribble(py_trees.behaviour.Behaviour):
+        def __init__(self):
+            name = "No Dribble"
+            super().__init__(name) 
+        def update(self):
+            print("no dribble")
             return py_trees.common.Status.SUCCESS
-        else:
-            return py_trees.common.Status.FAILURE
-        
-class DoDribble(py_trees.behaviour.Behaviour):
-    def __init__(self):
-        name = "Doing Dribble"
-        super().__init__(name)
-        self.bb = py_trees.blackboard.Client(name=name)
-        
-    def setup(self):
-        self.bb.register_key(key="dribble",access=py_trees.common.Access.WRITE)
     
-    def update(self):
-        self.bb.dribble = 1
-        return py_trees.common.Status.SUCCESS
-    
+
+        
 def Kick(kick_threshold:float,kick_angle:float):
-    kick_seq = py_trees.composites.Sequence(name="Kick Sequence",memory=True)
-    kick_seq.add_children([
-        CanKick(kick_threshold=kick_threshold,kick_angle=kick_angle),
-        DoKick()
+    kick_selector = py_trees.composites.Selector(name="Kick Selector",memory=True)
+    kick_selector.add_children([
+        YesKick(kick_threshold=kick_threshold,kick_angle=kick_angle),
+        NoKick()
     ])
-    return kick_seq
+    return kick_selector
     
-# class KickSequence(py_trees.composites.Sequence):
-#     def __init__(self, kick_threshold:float,kick_angle:float):
-#         name = "Kick Sequence"
-#         super(KickSequence,self).__init__(name=name,memory=True)
-#         self.kick_threshold = kick_threshold
-#         self.kick_angle = kick_angle
-#         self.bb = py_trees.blackboard.Client(name=name)
-        
-#         self.add_children([
-#             CanKick(kick_threshold=kick_threshold,kick_angle=kick_angle),
-#             DoKick()
-#         ])
-        
     
-class CanKick(py_trees.behaviour.Behaviour):
+class YesKick(py_trees.behaviour.Behaviour):
     def __init__(self, kick_threshold:float,kick_angle:float):
-        name = "Can Kick"
+        name = "Yes Kick"
         super().__init__(name)
         self.kick_threshold = kick_threshold
         self.kick_angle = kick_angle
         self.bb = py_trees.blackboard.Client(name=name)
-        
-    def setup(self):
         self.bb.register_key(key="robot_pos",access=py_trees.common.Access.READ)
         self.bb.register_key(key="target_pos",access=py_trees.common.Access.READ)
-        \
+        self.bb.register_key(key="kick",access=py_trees.common.Access.WRITE)
         
     def update(self):
         relative_target_arr = world2robot(robot_position=self.bb.robot_pos, target_position=self.bb.target_pos)
@@ -207,19 +199,30 @@ class CanKick(py_trees.behaviour.Behaviour):
         angle_diff = np.arctan2(relative_target_arr[1], relative_target_arr[0])
         
         if distance <= self.kick_threshold and abs(angle_diff) <= self.kick_angle:
+            self.bb.kick = 1
+            print("yes kick")
             return py_trees.common.Status.SUCCESS
         else:
             return py_trees.common.Status.FAILURE
-
-class DoKick(py_trees.behaviour.Behaviour):
-    def __init__(self):
-        name = "Doing Kick"
-        super().__init__(name)
-        self.bb = py_trees.blackboard.Client(name=name)
         
-    def setup(self):
-        self.bb.register_key(key="kick",access=py_trees.common.Access.WRITE)
-    
-    def update(self):
-        self.bb.kick = 1
-        return py_trees.common.Status.SUCCESS
+class NoKick(py_trees.behaviour.Behaviour):
+        def __init__(self):
+            name = "No Kick"
+            super().__init__(name) 
+        def update(self):
+            print("no kick")
+            return py_trees.common.Status.SUCCESS
+
+class DoNothing(py_trees.behaviour.Behaviour):
+        def __init__(self):
+                name = "Do Nothing"
+                super().__init__(name)
+                self.bb = py_trees.blackboard.Client(name=name)
+                self.bb.register_key(key="kick",access=py_trees.common.Access.WRITE)
+                self.bb.register_key(key="dribble",access=py_trees.common.Access.WRITE)
+                
+        def update(self):
+            self.bb.kick=0
+            self.bb.dribble=0    
+            return py_trees.common.Status.SUCCESS
+        

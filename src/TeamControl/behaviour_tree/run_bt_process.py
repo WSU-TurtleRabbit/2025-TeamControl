@@ -27,6 +27,9 @@ def run_bt_process(is_running:Event,wm:WorldModel, dispatcher_q:Queue)->None:
     bt = py_trees.trees.BehaviourTree(root)
     bt.setup(timeout=15) # remember to add timeout
     
+    # def print_tree(self):
+    print((py_trees.display.unicode_tree(root, show_status=True)))
+    
     while is_running.is_set():
         # print(wm.get_game_state())
         # print(wm.get_version())

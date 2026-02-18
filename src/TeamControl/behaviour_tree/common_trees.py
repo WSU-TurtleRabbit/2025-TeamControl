@@ -8,6 +8,7 @@ class GetWorldPositionUpdate(py_trees.behaviour.Behaviour):
         self.wm = wm
         super().__init__(name)
     
+    
     def setup(self,logger=None):
         if logger is not None: # use this instead
             self.logger = logger 

@@ -408,9 +408,9 @@ class SendRobotCommand(py_trees.behaviour.Behaviour):
         self.runtime = runtime
         super().__init__(name)
     
-    def setup(self,logger=None):
-        if logger is not None:
-            self.logger = logger
+    # def setup(self,logger=None):
+        # if logger is not None:
+        #     self.logger = logger
         self.bb = py_trees.blackboard.Client(name="SendRobotCommand")
         self.bb.register_key(key="robot_id", access=py_trees.common.Access.READ)
         self.bb.register_key(key="isYellow", access=py_trees.common.Access.READ)
@@ -422,10 +422,10 @@ class SendRobotCommand(py_trees.behaviour.Behaviour):
         self.bb.register_key(key="command", access=py_trees.common.Access.WRITE)
         
         # preset 
-        self.last_command = self.bb.command
+        # self.last_command = self.bb.command
         
         
-    def initialise(self):
+    # def initialise(self):
         robot_id = self.bb.robot_id
         isYellow = self.bb.isYellow
         vx = self.bb.vx if self.bb.exists("vx") else 0.0
@@ -441,21 +441,49 @@ class SendRobotCommand(py_trees.behaviour.Behaviour):
         
     
     
-    def update(self) -> py_trees.common.Status:
-        command = self.bb.command
-        # if self.last_command.to_dict() == command.to_dict() : 
-        #     print(f"[SendRobotCommand] No new command")
-        #     return py_trees.common.Status.SUCCESS
+    # def update(self) -> py_trees.common.Status:
+    #     command = self.bb.command
+    #     # if self.last_command.to_dict() == command.to_dict() : 
+    #     #     print(f"[SendRobotCommand] No new command")
+    #     #     return py_trees.common.Status.SUCCESS
         
+    #     packet = (command, self.runtime)
+    #     # print(f"[SendRobotCommand] Sending command: {command}")
+    #     if not self.dispatcher_q.full():
+    #         self.dispatcher_q.put(packet)
+    #         self.last_command = command
+    #         return py_trees.common.Status.SUCCESS
+        
+    #     else:
+    #         print("[SendRobotCommand] Dispatcher queue is full, cannot send command")
+    #         return py_trees.common.Status.FAILURE
+    #     # this is always success until we put more stuff to check here.
+    
+    def update(self) -> py_trees.common.Status:
+        print("SendRobotCommand is running")
+        robot_id = self.bb.robot_id
+        isYellow = self.bb.isYellow
+
+        vx = self.bb.vx if self.bb.exists("vx") else 0.0
+        vy = self.bb.vy if self.bb.exists("vy") else 0.0
+        w  = self.bb.w  if self.bb.exists("w")  else 0.0
+        kick = self.bb.kick if self.bb.exists("kick") else 0
+        dribble = self.bb.dribble if self.bb.exists("dribble") else 0
+
+        command = RobotCommand(
+            robot_id=robot_id,
+            vx=vx, vy=vy, w=w,
+            kick=kick,
+            dribble=dribble,
+            isYellow=isYellow
+        )
+
         packet = (command, self.runtime)
-        # print(f"[SendRobotCommand] Sending command: {command}")
+
         if not self.dispatcher_q.full():
             self.dispatcher_q.put(packet)
-            self.last_command = command
             return py_trees.common.Status.SUCCESS
-        
         else:
-            print("[SendRobotCommand] Dispatcher queue is full, cannot send command")
+            print("[SendRobotCommand] Dispatcher queue is full")
             return py_trees.common.Status.FAILURE
-        # this is always success until we put more stuff to check here.
-        
+
