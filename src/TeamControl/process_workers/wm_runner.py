@@ -43,13 +43,9 @@ class WMWorker(BaseWorker):
             self.logger.info(f"[wmr] : Updating World Model Game Info {new_info[0]}")
             self.wm.update_game_data(new_info)
         
-        # try:
-        #     self.wm.update_gc_data()
-        # except Exception as e:
-        #     print(f"[wmr] : Exception while updating gc data: {e}")
-        
         # use flush to rule out stdout buffering issues when printing from multiple processes
         # print(f"[wmr]: state from game controller: {self.wm.get_game_state()}", flush=True)
+
         time.sleep(self.delay_time)
     
     def run(self):

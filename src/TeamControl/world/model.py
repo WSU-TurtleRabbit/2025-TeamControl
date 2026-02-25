@@ -13,6 +13,7 @@ from TeamControl.SSL.game_controller.Message import RefereeMessage,TeamInfo
 from multiprocessing import Queue,Manager
 import numpy as np
 import numpy.typing as npt
+import ctypes
 import logging
 
 
@@ -45,7 +46,7 @@ class WorldModel:
         self.geometry:GeometryData = None
         self.field:FieldSize = None
         self._version = mgr.Value('i', 0)   # int counter
-        self._state = None # current state from GC
+        self._state = mgr.Value(ctypes.c_int, 0) # current state from GC
         self.robot_active = 6 # robots active
         self.blf_location = None # ball left field location
     
@@ -101,7 +102,14 @@ class WorldModel:
     
     def update_state(self,new_state):
         # when we have a new incoming state, it updates this
-        self._state = new_state 
+        # defensive check
+        if isinstance(new_state, GameState):
+            self._state.value = new_state.value
+        elif isinstance(new_state, int):
+            # convert to GameState
+            self._state.value = GameState(new_state).value
+        else:
+            log.warning(f"update_state received unexpected type: {type(new_state)}, value: {new_state}")
 
     def update_team(self, us_yellow: bool, us_positive: bool):
         self._us_yellow = us_yellow
@@ -113,9 +121,11 @@ class WorldModel:
     def get_ball_left_field_location(self):
         return self.blf_location
     
-    def get_game_state(self):
+    # use .value to obtain a GameState object
+    def get_game_state(self) -> GameState:
         # print(f"[WorldModel] get_game_state: GameState: {self._state}")
-        return self._state
+        print(f"_state Type: {type(self._state.value)}")
+        return self._state.value
 
     def us_yellow(self):
         return self._us_yellow

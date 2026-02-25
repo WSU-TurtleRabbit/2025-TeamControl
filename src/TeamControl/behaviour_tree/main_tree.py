@@ -375,8 +375,7 @@ class GetState(py_trees.behaviour.Behaviour):
         self.wm = wm
         
         # for now, we shall comment this out -- testing
-        # self.state = self.wm.get_game_state()
-        self.state = RUNNING
+        self.state = self.wm.get_game_state()
 
         print(f"[GetState] Initialized with state: {self.state}")
         # print("Debug: GetState initialized")

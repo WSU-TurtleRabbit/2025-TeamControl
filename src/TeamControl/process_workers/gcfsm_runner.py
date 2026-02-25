@@ -4,19 +4,20 @@ from TeamControl.network.ssl_sockets import GameControl
 
 from TeamControl.process_workers.worker import BaseWorker
 from multiprocessing import Queue
+from multiprocessing.managers import ValueProxy
 from enum import Enum,auto
 
 
 
 class GCfsm (BaseWorker):
-    def __init__(self,is_running,logger):
+    def __init__(self, is_running, logger):
         super().__init__(is_running,logger)
         self.last_ref_msg = None
         # state, command, event, stage
         self.current_command = None
         self.current_event = None
         self.current_stage = None
-        self.current_state = None
+        
         # cards
         self.fouls = 0
         self.yellow_cards = 0
@@ -30,12 +31,13 @@ class GCfsm (BaseWorker):
         self.recv = GameControl(is_running=is_running)
     
     def setup(self,*args):
-        output_q, us_yellow, us_positive = args
-        
+        output_q, us_yellow, us_positive, shared_state = args
         self.output_q = output_q
         self.us_yellow = us_yellow
-        self.us_positive = us_positive    
-        self.logger.info (f"[GCP] : Setup Complete {self.output_q=}, {us_yellow=}, {us_positive=}")
+        self.us_positive = us_positive 
+        # value accessed via manager
+        self.shared_state : ValueProxy = shared_state   
+        self.logger.info (f"[GCP] : Setup Complete {self.output_q=}, {us_yellow=}, {us_positive=}, {shared_state=}")
         
     def step(self):
         print(f"-> [GCfsm.step] RUNNING")
@@ -62,10 +64,11 @@ class GCfsm (BaseWorker):
             # check for card and foul changes, add / remove robot from field
             self.check_cards(new_ref_msg)
             # check for state changes, forward new decided state (see GameState Enum)
-            state = self.check_state(new_ref_msg)
+            self.shared_state.value = self.check_state(new_ref_msg).value
             # check for game event : ball placement location (for now)
             self.check_game_events(new_ref_msg)
-            print("STATE from game_controller is: ", state)
+
+            print("STATE from game_controller is: ", self.shared_state.value)
     
             
     
@@ -160,66 +163,52 @@ class GCfsm (BaseWorker):
     
     def check_state(self,new_ref_msg:RefereeMessage):
         state = self.update_state(new_ref_msg.command, new_ref_msg.stage)
-        self.current_stage = new_ref_msg.stage
+        # self.shared_state.value = new_ref_msg.stage.value
         self.current_command = new_ref_msg.command
+        print(f"[GCfsm] current state: {GameState(self.shared_state.value)}", flush=True)
         return state
 
-    def update_state(self,command,stage):
-        if not isinstance(command,Command) or not isinstance(stage,Stage):
+# checks commands and updates state accordingly
+    def update_state(self, command, stage):
+        if not isinstance(command, Command) or not isinstance(stage, Stage):
             print("[GCfsm.update_state] An error has occurred.")
+            return
+
+        # default state
+        new_state = GameState.RUNNING
+
         if command == Command.STOP:
-            state = GameState.STOPPED
+            new_state = GameState.STOPPED
         elif command == Command.PREPARE_KICKOFF_YELLOW:
-            state = GameState.PREPARE_KICKOFF if self.us_yellow is True else GameState.STOPPED
+            new_state = GameState.PREPARE_KICKOFF if self.us_yellow is True else GameState.STOPPED
         elif command == Command.PREPARE_KICKOFF_BLUE:
-            state = GameState.PREPARE_KICKOFF if self.us_yellow is False else GameState.STOPPED
-        elif command == Command.BALL_PLACEMENT_YELLOW: 
-            state = GameState.BALL_PLACEMENT if self.us_yellow is True else GameState.STOPPED
-        elif command == Command.BALL_PLACEMENT_BLUE: 
-            state = GameState.BALL_PLACEMENT if self.us_yellow is False else GameState.STOPPED
-            
+            new_state = GameState.PREPARE_KICKOFF if self.us_yellow is False else GameState.STOPPED
+        elif command == Command.BALL_PLACEMENT_YELLOW:
+            new_state = GameState.BALL_PLACEMENT if self.us_yellow is True else GameState.STOPPED
+        elif command == Command.BALL_PLACEMENT_BLUE:
+            new_state = GameState.BALL_PLACEMENT if self.us_yellow is False else GameState.STOPPED
         elif command == Command.FORCE_START:
-            state = GameState.RUNNING
+            new_state = GameState.RUNNING
         elif command in {Command.DIRECT_FREE_YELLOW, Command.INDIRECT_FREE_YELLOW}:
-            state = GameState.FREE_KICK if self.us_yellow is True else GameState.RUNNING 
+            new_state = GameState.FREE_KICK if self.us_yellow is True else GameState.RUNNING
         elif command in {Command.DIRECT_FREE_BLUE, Command.INDIRECT_FREE_BLUE}:
-            state = GameState.FREE_KICK if self.us_yellow is False else GameState.RUNNING
+            new_state = GameState.FREE_KICK if self.us_yellow is False else GameState.RUNNING
         elif command == Command.NORMAL_START:
             if self.current_command == Command.PREPARE_KICKOFF_YELLOW:
-                state = GameState.KICKOFF if self.us_yellow is True else GameState.HALTED
+                new_state = GameState.KICKOFF if self.us_yellow is True else GameState.HALTED
             elif self.current_command == Command.PREPARE_KICKOFF_BLUE:
-                state = GameState.KICKOFF if self.us_yellow is False else GameState.HALTED
-            elif self.current_command in {Command.DIRECT_FREE_BLUE,Command.DIRECT_FREE_YELLOW,Command.INDIRECT_FREE_BLUE,Command.INDIRECT_FREE_YELLOW}:
-                state = GameState.RUNNING
-                    
+                new_state = GameState.KICKOFF if self.us_yellow is False else GameState.HALTED
+            elif self.current_command in {Command.DIRECT_FREE_BLUE, Command.DIRECT_FREE_YELLOW, Command.INDIRECT_FREE_BLUE, Command.INDIRECT_FREE_YELLOW}:
+                new_state = GameState.RUNNING
             elif self.current_command == Command.PREPARE_PENALTY_YELLOW:
-                state = GameState.PENALTY_SHOOT if self.us_yellow is False else GameState.PENALTY_DEFEND
+                new_state = GameState.PENALTY_SHOOT if self.us_yellow is False else GameState.PENALTY_DEFEND
             elif self.current_command == Command.PREPARE_PENALTY_BLUE:
-                state = GameState.PENALTY_SHOOT if self.us_yellow is False else GameState.PENALTY_DEFEND
-            
-            else : 
-                state = GameState.RUNNING
-            
-        # elif command == Command.TIMEOUT_YELLOW : 
-        #     state = GameState.TIME_OUT if self.us_yellow is True else GameState.HALTED
-        # elif command == Command.TIMEOUT_BLUE : 
-        #     state = GameState.TIME_OUT if self.us_yellow is False else GameState.HALTED
-        
-        else : 
-            state = GameState.HALTED
-            if stage == Stage.NORMAL_HALF_TIME or stage == Stage.EXTRA_HALF_TIME:
-                state = GameState.HALF_TIME
-            
-        
-        if state != self.current_state:
-            packet = (PacketType.NEW_STATE, state)
-            print(f"new state: {state}")
-            self.output_q.put(packet)
-            self.current_state = state
-        
-        return state
-        
+                new_state = GameState.PENALTY_SHOOT if self.us_yellow is False else GameState.PENALTY_DEFEND
+            else:
+                new_state = GameState.RUNNING
 
+        self.shared_state.value = new_state.value
+        return new_state
 
     def check_game_events(self,new_ref_msg:RefereeMessage):
         game_events = new_ref_msg.game_events
@@ -243,5 +232,5 @@ class GCfsm (BaseWorker):
 
     # what does this do?            
     def run(self):
-        print(f"[GCfsm.run_worker] RUNNING")
+        # print(f"[GCfsm.run_worker] RUNNING")
         self.step()

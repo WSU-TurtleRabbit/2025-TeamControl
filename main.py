@@ -22,7 +22,8 @@ from TeamControl.robot.striker import run_simple_striker
 # from TeamControl.robot.unittest import run_test_to_goal
 from TeamControl.plotter.plot import run_plotter
 
-
+# --
+from TeamControl.SSL.game_controller.common import GameState
 
 # in multiprocessing this can only be a simple process
 from multiprocessing import Process, Queue,Event
@@ -60,11 +61,13 @@ def main():
     wm_manager.start()
     wm = wm_manager.WorldModel()
     
+    # initialise a GameState
+    shared_state: GameState = wm.get_game_state()
 
     # processes
     wmr = Process(target=WMWorker.run_worker, args=(is_running,logger,wm,vision_q,gc_q),)
     vision_wkr = Process(target=VisionProcess.run_worker, args=(is_running,logger,vision_q,preset.use_grSim_vision,preset.vision[1]),)
-    gc_wkr = Process(target=GCfsm.run_worker, args=(is_running, logger, gc_q, preset.us_yellow, preset.us_positive ),)
+    gc_wkr = Process(target=GCfsm.run_worker, args=(is_running, logger, gc_q, preset.us_yellow, preset.us_positive, shared_state),)
     bt = Process(target=run_bt_process, args=(is_running,wm,dispatch_q,) )
     # striker = Process(target=run_simple_striker, args=(dispatch_q, wm, 0, preset.us_yellow))
     dispatch_wkr = Process(target=Dispatcher.run_worker, args=(is_running,logger,dispatch_q,preset,),)
