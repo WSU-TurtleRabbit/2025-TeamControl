@@ -36,39 +36,39 @@ class GCfsm (BaseWorker):
         self.us_yellow = us_yellow
         self.us_positive = us_positive 
         # value accessed via manager
-        self.shared_state : ValueProxy = shared_state   
+        self.shared_state : GameState= shared_state   
         self.logger.info (f"[GCP] : Setup Complete {self.output_q=}, {us_yellow=}, {us_positive=}, {shared_state=}")
         
     def step(self):
-        print(f"-> [GCfsm.step] RUNNING")
         # listen from GameControl socket
         new_data = self.recv.listen()
+        # print("GCFSM NEW DATA")
         # if the socket says None
         if new_data is None:
             self.logger.error("[GCP] received None from Socket")
             # time.sleep(1) # wait one sec
             raise AttributeError("received None from Socket") # if this is none, continue
-        else:
-            print("[GCfsm] -> new_data is not None: ", new_data, "\n")
+        # else:
+            # print("[GCfsm] -> new_data is not None: ", new_data, "\n")
         new_ref_msg:RefereeMessage = RefereeMessage.from_proto(new_data)
+        self.logger.info("UPDATING NEW REF MESSAGE")
+        
         # no previous packets
         if self.last_ref_msg is not None:
             # check if the timestamp is before
             if new_ref_msg.packet_timestamp < self.last_ref_msg.packet_timestamp:
                 return
-        else:
-            # otherwise :
-            self.last_ref_msg = new_ref_msg
-            # check team color if this changes, basically resets everything
-            self.check_color_side(new_ref_msg)
-            # check for card and foul changes, add / remove robot from field
-            self.check_cards(new_ref_msg)
-            # check for state changes, forward new decided state (see GameState Enum)
-            self.shared_state.value = self.check_state(new_ref_msg).value
-            # check for game event : ball placement location (for now)
-            self.check_game_events(new_ref_msg)
+        self.last_ref_msg = new_ref_msg
+        # check team color if this changes, basically resets everything
+        self.check_color_side(new_ref_msg)
+        # check for card and foul changes, add / remove robot from field
+        self.check_cards(new_ref_msg)
+        # check for state changes, forward new decided state (see GameState Enum)
+        self.check_state(new_ref_msg)
+        # check for game event : ball placement location (for now)
+        self.check_game_events(new_ref_msg)
 
-            print("STATE from game_controller is: ", self.shared_state.value)
+        # print("[GCFSM] : STATE from game_controller is: ", self.shared_state.name)
     
             
     
@@ -81,14 +81,14 @@ class GCfsm (BaseWorker):
         yellow_cards = new_ref_msg.yellow.yellow_cards if self.us_yellow == True else new_ref_msg.blue.yellow_cards
         
         if self.yellow_cards != yellow_cards :  # number not equal
-            print(f"yellow card number changed : {yellow_cards}")
+            self.logger.warning(f"yellow card number changed : {yellow_cards}")
             self.yellow_cards = yellow_cards
         
         # check how many are still active
         yellow_card_active:int = len(new_ref_msg.yellow.yellow_card_times) if self.us_yellow==True else len(new_ref_msg.blue.yellow_card_times)
         
         if yellow_card_active != self.yellow_card_active: # if this has changes (more / less)
-            print(f"yellow card times changed : {yellow_card_active}")
+            self.logger.warning(f"yellow card times changed : {yellow_card_active}")
             self.yellow_card_active = yellow_card_active
             # we need to update our active robot numbers
             update_numbers = True
@@ -97,7 +97,7 @@ class GCfsm (BaseWorker):
         red_cards = new_ref_msg.yellow.red_cards if self.us_yellow == True else new_ref_msg.blue.red_cards
         # check if there's number changes from the record
         if self.red_cards != red_cards : 
-            print(f"red card number changed : {red_cards}")
+            self.logger.warning(f"red card number changed : {red_cards}")
             self.red_cards = red_cards
             # update active robot *red card = permanently remove
             update_numbers = True
@@ -105,7 +105,7 @@ class GCfsm (BaseWorker):
         # checking fouls in our team
         fouls = new_ref_msg.yellow.foul_counter if self.us_yellow == True else new_ref_msg.blue.foul_counter
         if self.fouls != fouls:
-            print(f"Foul Counter has changed : {fouls}")
+            self.logger.warning(f"Foul Counter has changed : {fouls}")
             self.fouls = fouls # 3 fouls = 1 yellow card 
             
         if update_numbers is True : 
@@ -151,7 +151,7 @@ class GCfsm (BaseWorker):
         if self.us_yellow != us_yellow or self.us_positive != us_positive:
             self.us_yellow = us_yellow
             self.us_positive = us_positive
-            print(f"we are now yellow : {us_yellow} , positive: {us_positive}")
+            self.logger.info(f"we are now yellow : {us_yellow} , positive: {us_positive}")
             packet = (PacketType.SWITCH_TEAM, {"YELLOW" : self.us_yellow,"POSITIVE": self.us_positive})
             self.output_q.put_nowait(packet)
             
@@ -163,20 +163,24 @@ class GCfsm (BaseWorker):
     
     def check_state(self,new_ref_msg:RefereeMessage):
         state = self.update_state(new_ref_msg.command, new_ref_msg.stage)
+        if state != self.shared_state:
+            self.shared_state = state
+            
+            print(f"[GCFSM] NEW STATE, {self.shared_state}")
+            packet = (PacketType.NEW_STATE, {self.shared_state})
+            self.output_q.put_nowait(packet)
         # self.shared_state.value = new_ref_msg.stage.value
-        self.current_command = new_ref_msg.command
-        print(f"[GCfsm] current state: {GameState(self.shared_state.value)}", flush=True)
-        return state
+        # self.current_command = new_ref_msg.command
+            self.logger.info(f"[GCfsm] current state: {self.shared_state}")
 
 # checks commands and updates state accordingly
     def update_state(self, command, stage):
+        new_state = GameState.HALTED
         if not isinstance(command, Command) or not isinstance(stage, Stage):
-            print("[GCfsm.update_state] An error has occurred.")
+            self.logger.error("[GCfsm.update_state] An error has occurred.")
             return
 
         # default state
-        new_state = GameState.RUNNING
-
         if command == Command.STOP:
             new_state = GameState.STOPPED
         elif command == Command.PREPARE_KICKOFF_YELLOW:
@@ -207,7 +211,7 @@ class GCfsm (BaseWorker):
             else:
                 new_state = GameState.RUNNING
 
-        self.shared_state.value = new_state.value
+        self.shared_state = new_state
         return new_state
 
     def check_game_events(self,new_ref_msg:RefereeMessage):
@@ -218,19 +222,14 @@ class GCfsm (BaseWorker):
         
         for e in game_events:
             if e.type == GameEventType.BALL_LEFT_FIELD_TOUCH_LINE or e.type == GameEventType.BALL_LEFT_FIELD_GOAL_LINE:
-                # self.forward_ball_location(e.event_data)
-                print("ball_left_field")
+                # self.forward_ball_location(e.event_data) #not tested
+                self.logger.warning("ball_left_field")
             if e.type == GameEventType.BOT_SUBSTITUTION : 
                 if e.by_team == Team.YELLOW if self.us_yellow == True else Team.BLUE:
-                    print("we sub robot")
+                    self.logger.warning("we sub robot")
                 
     def forward_ball_location(self,event_data):
         location = event_data.location.vector
         if location is not None and self.last_blf_location != location:
                 packet = (PacketType.BLF_LOCATION, location)
                 self.output_q.put_nowait(packet)
-
-    # what does this do?            
-    def run(self):
-        # print(f"[GCfsm.run_worker] RUNNING")
-        self.step()
