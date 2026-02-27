@@ -124,7 +124,6 @@ class WorldModel:
     # use .value to obtain a GameState object
     def get_game_state(self) -> GameState:
         # print(f"[WorldModel] get_game_state: GameState: {self._state}")
-        print(f"_state Type: {type(self._state.value)}")
         return self._state.value
 
     def us_yellow(self):
