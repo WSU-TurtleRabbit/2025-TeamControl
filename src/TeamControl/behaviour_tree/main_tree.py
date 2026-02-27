@@ -11,13 +11,14 @@ from TeamControl.behaviour_tree.common_trees import *
 from TeamControl.behaviour_tree.halt_sequence import *
 from TeamControl.behaviour_tree.stop_sequence import *
 from TeamControl.behaviour_tree.cmd_mgr import CommandManager
+from TeamControl.SSL.game_controller.common import GameState
 import py_trees
 import random
 
 # Game states
-RUNNING = "RUNNING"
-STOPPED = "STOPPED"
-HALTED = "HALTED"
+# RUNNING = "RUNNING"
+# STOPPED = "STOPPED"
+# HALTED = "HALTED"
 
 # Generic markers for success/fail
 FAIL = 0
@@ -388,23 +389,24 @@ class GetState(py_trees.behaviour.Behaviour):
     # note: instead of passing state_for_testing, get the actual state from the game controller
     # default is RUNNING for test operation, but should be changed for real use
     def update(self) -> py_trees.common.Status:
-        # game_state = self.wm.get_game_state()
+        self.bb.game_state = self.wm.get_game_state()
      
         # handle cases (stop, running, halted)
         if self.bb.game_state is None:
+            print("NO STATE")
             return py_trees.common.Status.FAILURE
-        elif self.bb.game_state == STOPPED:
+        elif self.bb.game_state == GameState.STOPPED:
             print("[GetState] Game state is STOPPED")
             return py_trees.common.Status.SUCCESS
-        elif self.bb.game_state == RUNNING:
+        elif self.bb.game_state == GameState.RUNNING:
             print("[GetState] Game state is RUNNING")
             return py_trees.common.Status.SUCCESS
-        elif self.bb.game_state == HALTED:
+        elif self.bb.game_state == GameState.HALTED:
             print("[GetState] Game state is HALTED")
             return py_trees.common.Status.SUCCESS
         else:
-            print("Unknown Game State:", self.bb.game_state, 
-                  "\nHint: Try using 'RUNNING', 'STOPPED' or 'HALTED'")
+            # print("Unknown Game State:", self.bb.game_state, 
+            #       "\nHint: Try using 'RUNNING', 'STOPPED' or 'HALTED'")
             return py_trees.common.Status.FAILURE
 
     # def print_state(self):
@@ -426,7 +428,7 @@ class IsRunning(py_trees.behaviour.Behaviour):
         self.bb.register_key(key="game_state", access=py_trees.common.Access.READ)
 
     def update(self):
-        self.isRunning = self.bb.game_state == RUNNING
+        self.isRunning = self.bb.game_state == GameState.RUNNING
         if self.isRunning:
             return py_trees.common.Status.SUCCESS
         else:
@@ -445,7 +447,7 @@ class IsStopped(py_trees.behaviour.Behaviour):
         self.bb.register_key(key="game_state", access=py_trees.common.Access.READ)
 
     def update(self):
-        self.isStopped = self.bb.game_state == STOPPED
+        self.isStopped = self.bb.game_state == GameState.STOPPED
         if self.isStopped:
             return py_trees.common.Status.SUCCESS
         else:
@@ -465,7 +467,7 @@ class IsHalted(py_trees.behaviour.Behaviour):
         self.bb.register_key(key="game_state", access=py_trees.common.Access.READ)
 
     def update(self):
-        self.isHalted = self.bb.game_state == HALTED
+        self.isHalted = self.bb.game_state == GameState.HALTED
         if self.isHalted:
             return py_trees.common.Status.SUCCESS
         else: 
@@ -490,7 +492,7 @@ if __name__ == "__main__":
     logger = LogSaver()
     
     # test with STOPPED state
-    main_tree = MainTree(wm=wm, dispatch_q=dispatch_q, state=STOPPED, logger=logger)
+    main_tree = MainTree(wm=wm, dispatch_q=dispatch_q, state=GameState.STOPPED, logger=logger)
     bt = py_trees.trees.BehaviourTree(main_tree)
     bt.setup(timeout=15)
     bt.tick()
