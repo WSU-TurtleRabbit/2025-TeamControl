@@ -140,21 +140,25 @@ class RefereeMessage():
     def _command_has_changed(self,other):
         ## self is newer than other (<) older (>)
         if self.command != other.command:
-            print("command has changed")
+            # print("command has changed")
             return True
         
     def _stage_has_changed(self,other):
         if self.stage != other.stage:
-            print("stage has changed")
+            # print("stage has changed")
             return True
     
-    def _team_has_changed(self,other):
+    def _team_has_changed(self,other)-> bool:
         if self.blue_team_on_positive_half != other.blue_team_on_positive_half:
-            print("team sides changed")
+            return True
+            # print("team sides changed")
         if self.yellow !=  other.yellow :
-            print("Different Yellow Data")
+            return True
+            # print("Different Yellow Data")
         if self.blue != other.blue : 
-            print("Different Blue data")
+            return True
+            # print("Different Blue data")
+        return False
             
         
 
