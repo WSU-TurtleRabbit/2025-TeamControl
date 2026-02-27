@@ -211,7 +211,6 @@ class GCfsm (BaseWorker):
             else:
                 new_state = GameState.RUNNING
 
-        self.shared_state = new_state
         return new_state
 
     def check_game_events(self,new_ref_msg:RefereeMessage):
