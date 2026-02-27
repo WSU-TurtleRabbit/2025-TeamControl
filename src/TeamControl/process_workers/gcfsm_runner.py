@@ -51,7 +51,7 @@ class GCfsm (BaseWorker):
         # else:
             # print("[GCfsm] -> new_data is not None: ", new_data, "\n")
         new_ref_msg:RefereeMessage = RefereeMessage.from_proto(new_data)
-        self.logger.info("UPDATING NEW REF MESSAGE")
+        # self.logger.info("UPDATING NEW REF MESSAGE")
         
         # no previous packets
         if self.last_ref_msg is not None:
