@@ -6,229 +6,154 @@ from TeamControl.process_workers.worker import BaseWorker
 from multiprocessing import Queue
 from multiprocessing.managers import ValueProxy
 from enum import Enum,auto
+from typing import List
 
 
 
 class GCfsm (BaseWorker):
     def __init__(self, is_running, logger):
-        super().__init__(is_running,logger)
-        self.last_ref_msg = None
-        # state, command, event, stage
-        self.current_command = None
-        self.current_event = None
-        self.current_stage = None
+        super().__init__(is_running,logger)    
+        self.recv:GameControl = GameControl(is_running=is_running)
+        self.last_msg:RefereeMessage = None
+        self.us_name:str = "TurtleRabbit"
+        self.blue_is_positive:bool = None
+        self.ge : List[GameEvent]= list()
+        self.command = None
+        self.stage = None
         
-        # cards
-        self.fouls = 0
-        self.yellow_cards = 0
-        self.yellow_card_active:int = 0
-        self.red_cards = 0
-        self.robots_active = 0
-        self.max_robots = 6 #small size league team member
-
-        # last known ball_left_field_location
-        self.last_blf_location = None
-        self.recv = GameControl(is_running=is_running)
+    @property
+    def checks(self):
+        return [
+            self.check_team_color,
+            self.check_team_sides,
+            self.check_command,
+            self.check_stage,
+            self.check_game_events,
+        ]
     
+    def team_color(self,us=True) -> Team:
+        if us: 
+            return Team.YELLOW if self.us_yellow else Team.BLUE
+        else:
+            return Team.BLUE if self.us_yellow else Team.YELLOW
+    
+    
+    def team_side_positive(self,us=True) -> bool:
+        if self.blue_is_positive is None:
+            self.logger.warning("No sides available, using default {self.us_positive=}")
+            return self.us_positive
+        color = self.team_color() if us else self.team_color(us=False)
+        match color:
+            case Team.YELLOW:
+                return not(self.blue_is_positive)
+            case Team.BLUE:
+                return self.blue_is_positive
+        
     def setup(self,*args):
         output_q, us_yellow, us_positive, shared_state = args
-        self.output_q = output_q
-        self.us_yellow = us_yellow
-        self.us_positive = us_positive 
+        self.output_q:bool = output_q
+        self.us_yellow:bool = us_yellow
+        self.us_positive:bool = us_positive 
         # value accessed via manager
         self.shared_state : GameState= shared_state   
         self.logger.info (f"[GCP] : Setup Complete {self.output_q=}, {us_yellow=}, {us_positive=}, {shared_state=}")
         
     def step(self):
-        # listen from GameControl socket
-        new_data = self.recv.listen()
-        # print("GCFSM NEW DATA")
-        # if the socket says None
-        if new_data is None:
+        # for each step do : 
+        new_info = self.recv.listen()
+        
+        if new_info is None:
             self.logger.error("[GCP] received None from Socket")
-            # time.sleep(1) # wait one sec
-            raise AttributeError("received None from Socket") # if this is none, continue
-        # else:
-            # print("[GCfsm] -> new_data is not None: ", new_data, "\n")
-        new_ref_msg:RefereeMessage = RefereeMessage.from_proto(new_data)
-        # self.logger.info("UPDATING NEW REF MESSAGE")
+            raise AttributeError ("[GCFSM] NO GC Message")
         
-        # no previous packets
-        if self.last_ref_msg is not None:
-            # check if the timestamp is before
-            if new_ref_msg.packet_timestamp < self.last_ref_msg.packet_timestamp:
-                return
-        self.last_ref_msg = new_ref_msg
-        # check team color if this changes, basically resets everything
-        self.check_color_side(new_ref_msg)
-        # check for card and foul changes, add / remove robot from field
-        self.check_cards(new_ref_msg)
-        # check for state changes, forward new decided state (see GameState Enum)
-        self.check_state(new_ref_msg)
-        # check for game event : ball placement location (for now)
-        self.check_game_events(new_ref_msg)
+        new_ref_msg:RefereeMessage = RefereeMessage.from_proto(new_info)
+        # self.logger.info(f"Checking Updates  {new_ref_msg.packet_timestamp=}")
+        self.check_updates(new_ref_msg)
+        
+        
+        
+    def check_updates(self,new_ref_msg:RefereeMessage):
+        msg_list = []
+        if self.last_msg is None:
+            self.last_msg = new_ref_msg
+            self.logger.info("INITIALISING WM")
+            self.output_q.put([PacketType.INITIALISE, new_ref_msg])
+        
+        # if there's a sequence error (timestamp)
+        elif self.last_msg.packet_timestamp > new_ref_msg.packet_timestamp:
+            raise LookupError (f"new message packet is older than current {int(new_ref_msg.packet_timestamp) - int(self.last_msg.packet_timestamp)}")
+            
+        for check in self.checks:
+            has_update,msg = check(new_ref_msg)
+            
+            if has_update :
+                msg_list.append(msg)
+        if len (msg_list) > 0:
+            self.output_q.put(msg)
+            self.logger.info(f"new update,{msg_list}")
 
-        # print("[GCFSM] : STATE from game_controller is: ", self.shared_state.name)
     
-            
-    
-    def check_cards(self,new_ref_msg:RefereeMessage):
-        update_numbers = False
-        if self.us_yellow is None or new_ref_msg.yellow is None or new_ref_msg.blue is None:
-            return # no color identified = > do nothing
+    def check_team_color(self,new_ref_msg:RefereeMessage)-> bool:
+        us_yellow:bool = new_ref_msg.yellow.name == self.us_name
+        us_blue:bool = new_ref_msg.blue.name == self.us_name
         
-        # check yellow cards in our team
-        yellow_cards = new_ref_msg.yellow.yellow_cards if self.us_yellow == True else new_ref_msg.blue.yellow_cards
+        # validate result
+        if us_yellow == us_blue or not(us_yellow,us_blue):
+            return False,None
         
-        if self.yellow_cards != yellow_cards :  # number not equal
-            self.logger.warning(f"yellow card number changed : {yellow_cards}")
-            self.yellow_cards = yellow_cards
-        
-        # check how many are still active
-        yellow_card_active:int = len(new_ref_msg.yellow.yellow_card_times) if self.us_yellow==True else len(new_ref_msg.blue.yellow_card_times)
-        
-        if yellow_card_active != self.yellow_card_active: # if this has changes (more / less)
-            self.logger.warning(f"yellow card times changed : {yellow_card_active}")
-            self.yellow_card_active = yellow_card_active
-            # we need to update our active robot numbers
-            update_numbers = True
-        
-        # check red cards in our Team
-        red_cards = new_ref_msg.yellow.red_cards if self.us_yellow == True else new_ref_msg.blue.red_cards
-        # check if there's number changes from the record
-        if self.red_cards != red_cards : 
-            self.logger.warning(f"red card number changed : {red_cards}")
-            self.red_cards = red_cards
-            # update active robot *red card = permanently remove
-            update_numbers = True
-        
-        # checking fouls in our team
-        fouls = new_ref_msg.yellow.foul_counter if self.us_yellow == True else new_ref_msg.blue.foul_counter
-        if self.fouls != fouls:
-            self.logger.warning(f"Foul Counter has changed : {fouls}")
-            self.fouls = fouls # 3 fouls = 1 yellow card 
-            
-        if update_numbers is True : 
-            self.update_robot_numbers()
-            
-    def update_robot_numbers(self):
-        # robots away = how many we need to take out 
-        robots_away = self.red_cards + self.yellow_card_active
-        # check how many robots should be active now
-        robots_active =  self.max_robots - robots_away 
-        
-        if robots_active <= 0:
-            robots_active = 0
-        # if this is different from our record
-        if robots_active == self.robots_active:
-            return
+        if self.us_yellow == us_yellow and not(self.us_yellow) == us_blue:
+            # no change color 
+            return False,None
         else:
-            packet = (PacketType.ROBOTS_ACTIVE,robots_active)
-            self.output_q.put_nowait(packet)
-            self.robots_active = robots_active
+            self.us_yellow = True if us_yellow else False
+            self.logger.info(f"Team Colors Sides Has Changed {self.us_yellow=}")
 
+            return True,[PacketType.SWITCH_COLOR,self.us_yellow]
+
+    def check_team_sides(self,new_ref_msg:RefereeMessage):
+        # get attr
+        # print(f"{self.blue_is_positive=}")
+        blue_positive = new_ref_msg.blue_team_on_positive_half
+        # if this field does not exists
+        if blue_positive is None:
+            return False, None
+        # check what team we are
+        if self.blue_is_positive != blue_positive:
+            self.blue_is_positive = blue_positive # update
+            self.us_positive = blue_positive if self.team_color == Team.BLUE else not(blue_positive)
+            self.logger.info(f"Sides has changed, {self.team_side_positive()=}")
+            return True, [PacketType.SWITCH_SIDES,self.us_positive]
         
-        
-    def check_color_side(self,new_ref_msg:RefereeMessage):
-        our_team_name :str = "TurtleRabbit"
-        us_positive:bool = None
-        us_yellow:bool = None
-        
-        if new_ref_msg.yellow.name == our_team_name:
-            us_yellow = True
-        elif new_ref_msg.blue.name == our_team_name:
-            us_yellow = False
-        
-        # self.update_cards()
-        
-        if new_ref_msg.blue_team_on_positive_half is None:
-            pass
-        elif new_ref_msg.blue_team_on_positive_half is True:
-            us_positive = False if  us_yellow == True else True
-        elif new_ref_msg.blue_team_on_positive_half is False:
-            us_positive = True if  us_yellow == True else False
-        
-        if self.us_yellow != us_yellow or self.us_positive != us_positive:
-            self.us_yellow = us_yellow
-            self.us_positive = us_positive
-            self.logger.info(f"we are now yellow : {us_yellow} , positive: {us_positive}")
-            packet = (PacketType.SWITCH_TEAM, {"YELLOW" : self.us_yellow,"POSITIVE": self.us_positive})
-            self.output_q.put_nowait(packet)
+        return False, None
             
-        elif self.us_yellow is None:
-            # warning log saying this is none
-            # raise AttributeError ("US YELLOW = NONE -> need our TeamName")
-            return
-    
-    
-    def check_state(self,new_ref_msg:RefereeMessage):
-        state = self.update_state(new_ref_msg.command, new_ref_msg.stage)
-        if state != self.shared_state:
-            self.shared_state = state
-            
-            print(f"[GCFSM] NEW STATE, {self.shared_state}")
-            packet = (PacketType.NEW_STATE, {self.shared_state})
-            self.output_q.put_nowait(packet)
-        # self.shared_state.value = new_ref_msg.stage.value
-        # self.current_command = new_ref_msg.command
-            self.logger.info(f"[GCfsm] current state: {self.shared_state}")
-
-# checks commands and updates state accordingly
-    def update_state(self, command, stage):
-        new_state = GameState.HALTED
-        if not isinstance(command, Command) or not isinstance(stage, Stage):
-            self.logger.error("[GCfsm.update_state] An error has occurred.")
-            return
-
-        # default state
-        if command == Command.STOP:
-            new_state = GameState.STOPPED
-        elif command == Command.PREPARE_KICKOFF_YELLOW:
-            new_state = GameState.PREPARE_KICKOFF if self.us_yellow is True else GameState.STOPPED
-        elif command == Command.PREPARE_KICKOFF_BLUE:
-            new_state = GameState.PREPARE_KICKOFF if self.us_yellow is False else GameState.STOPPED
-        elif command == Command.BALL_PLACEMENT_YELLOW:
-            new_state = GameState.BALL_PLACEMENT if self.us_yellow is True else GameState.STOPPED
-        elif command == Command.BALL_PLACEMENT_BLUE:
-            new_state = GameState.BALL_PLACEMENT if self.us_yellow is False else GameState.STOPPED
-        elif command == Command.FORCE_START:
-            new_state = GameState.RUNNING
-        elif command in {Command.DIRECT_FREE_YELLOW, Command.INDIRECT_FREE_YELLOW}:
-            new_state = GameState.FREE_KICK if self.us_yellow is True else GameState.RUNNING
-        elif command in {Command.DIRECT_FREE_BLUE, Command.INDIRECT_FREE_BLUE}:
-            new_state = GameState.FREE_KICK if self.us_yellow is False else GameState.RUNNING
-        elif command == Command.NORMAL_START:
-            if self.current_command == Command.PREPARE_KICKOFF_YELLOW:
-                new_state = GameState.KICKOFF if self.us_yellow is True else GameState.HALTED
-            elif self.current_command == Command.PREPARE_KICKOFF_BLUE:
-                new_state = GameState.KICKOFF if self.us_yellow is False else GameState.HALTED
-            elif self.current_command in {Command.DIRECT_FREE_BLUE, Command.DIRECT_FREE_YELLOW, Command.INDIRECT_FREE_BLUE, Command.INDIRECT_FREE_YELLOW}:
-                new_state = GameState.RUNNING
-            elif self.current_command == Command.PREPARE_PENALTY_YELLOW:
-                new_state = GameState.PENALTY_SHOOT if self.us_yellow is False else GameState.PENALTY_DEFEND
-            elif self.current_command == Command.PREPARE_PENALTY_BLUE:
-                new_state = GameState.PENALTY_SHOOT if self.us_yellow is False else GameState.PENALTY_DEFEND
-            else:
-                new_state = GameState.RUNNING
-
-        return new_state
-
+        
     def check_game_events(self,new_ref_msg:RefereeMessage):
-        game_events = new_ref_msg.game_events
-        location = None
-        if len(game_events) == 0:
-            return
+        new_ge= new_ref_msg.game_events
+        update = False
+        if len(new_ge) > 0:
+            # there a game event update
+            for i in new_ge: 
+                # print(i)
+                if i.id not in self.ge:
+                    self.ge.append(i.id)
+                    print(f"New Game Event ! {i.event},total {len(self.ge)}")
+                    update = True
+        if update: 
+            return True,[PacketType.NEW_EVENT,self.ge]
         
-        for e in game_events:
-            if e.type == GameEventType.BALL_LEFT_FIELD_TOUCH_LINE or e.type == GameEventType.BALL_LEFT_FIELD_GOAL_LINE:
-                # self.forward_ball_location(e.event_data) #not tested
-                self.logger.warning("ball_left_field")
-            if e.type == GameEventType.BOT_SUBSTITUTION : 
-                if e.by_team == Team.YELLOW if self.us_yellow == True else Team.BLUE:
-                    self.logger.warning("we sub robot")
+        return False,None
                 
-    def forward_ball_location(self,event_data):
-        location = event_data.location.vector
-        if location is not None and self.last_blf_location != location:
-                packet = (PacketType.BLF_LOCATION, location)
-                self.output_q.put_nowait(packet)
+    
+    def check_command(self,new_ref_msg:RefereeMessage):
+        if self.command != new_ref_msg.command:
+            self.command = new_ref_msg.command
+            return True,[PacketType.NEW_COMMAND,self.command]
+        
+        return False,None
+    
+    def check_stage(self,new_ref_msg:RefereeMessage):
+        if self.stage != new_ref_msg.stage:
+            self.stage = new_ref_msg.stage
+            return True, [PacketType.NEW_STAGE,self.stage]
+        
+        return False,None

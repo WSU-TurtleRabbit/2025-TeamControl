@@ -81,16 +81,16 @@ def main():
     is_running.set()
     
     ## BACKGROUND PROCESSES ##
-    vision_wkr.start()
+    # vision_wkr.start()
     gc_wkr.start()
     wmr.start()
-    dispatch_wkr.start()
+    # dispatch_wkr.start()
     # robot_recv.start()
     
     ## FORGROUND ##
     # plotter.start()
     # goalie.start()
-    bt.start()
+    # bt.start()
     # striker.start()
     # chaser.start()
     # planner_wkr.start()
@@ -104,24 +104,19 @@ def main():
                 print("Shutdown signal received...")
                 is_running.clear()
                 break
+
         except KeyboardInterrupt:
             print("\nShutdown signal received...")
             is_running.clear()
-            # sys.exit()
-
-
-        # Give processes time to see the event change and shut down
-        print("Waiting for processes to shut down...")
-        time.sleep(1)  # or 2 seconds if needed
 
     # Then wait for processes
-    vision_wkr.join(timeout=5)
-    gc_wkr.join(timeout=5)
+    # vision_wkr.join(timeout=5)
+    gc_wkr.join()
     wmr.join(timeout=5)
-    dispatch_wkr.join(timeout=5)
+    # dispatch_wkr.join(timeout=5)
     # robot_recv.join()
     
-    bt.join()
+    # bt.join()
     # striker.join()
     # chaser.join()   
     # goalie.join()
@@ -134,6 +129,7 @@ def main():
     # some_other_process2.join()
         
     print("All processes has been ended")
+    sys.exit()
         
         
 if __name__ == "__main__":

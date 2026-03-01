@@ -7,7 +7,7 @@
 from TeamControl.SSL.vision.frame_list import FrameList
 from TeamControl.SSL.vision.field import GeometryData,FieldSize
 from TeamControl.SSL.vision.frame import Frame
-from TeamControl.SSL.game_controller.common import Command,Stage,GameEventType,Team,PacketType, GameState
+from TeamControl.SSL.game_controller.common import Command,Stage,GameEventType,Team,PacketType, GameState,GameEvent
 from TeamControl.SSL.game_controller.Message import RefereeMessage,TeamInfo
 
 from multiprocessing import Queue,Manager
@@ -47,29 +47,30 @@ class WorldModel:
         self.field:FieldSize = None
         self._version = mgr.Value('i', 0)   # int counter
         self._state = mgr.Value(ctypes.c_int, 0) # current state from GC
-        self.robot_active = 6 # robots active
-        self.blf_location = None # ball left field location
+        self.team_update = False
+        self.state_update = False
     
-    def update_game_data(self,game_data):
-        if game_data is None:
-            return
-        if isinstance(game_data,Command):
-            self.ref_data.command = game_data
+          
+    def update_game_command(self,command:Command):
+        self.gc_command = command
+        # self.state_update = True
+    
+    def update_game_stage(self,stage:Stage):
+        self.gc_stage = stage
+        # self.state_update = True
+   
+    def update_game_events(self,game_events:list[GameEvent]):
+        self.gc_event = game_events
+        # self.state_update = True
 
-        elif isinstance(game_data, Stage):
-            self.ref_data.stage = game_data
+    def update_team_color(self, us_yellow: bool):
+        self._us_yellow = us_yellow
+        self.team_update = True
 
-        elif isinstance(game_data, tuple):
-            if isinstance(game_data[0], TeamInfo):
-                self.ref_data.yellow = game_data[0]
-                self.ref_data.blue = game_data[1]
-
-    def update_team(self, us_yellow: bool, us_positive: bool):
-        self.us_yellow = us_yellow
-        self.us_positive = us_positive
-        self.robot_active = 6 # robots active
-        self.blf_location = None
-
+    def update_team_side(self,us_positive: bool):
+        self._us_positive = us_positive
+        self.team_update = True
+    
     def add_new_frame(self, frame: Frame):
         self.count += 1
         if self.count >= self.update_interval:
@@ -85,14 +86,8 @@ class WorldModel:
     def update_gc_data(self,packet):
         t, data = packet[0],packet[1]
         match t:
-            case PacketType.ROBOTS_ACTIVE:
-                self.update_robots_active(data)
-            case PacketType.NEW_STATE:
-                self.update_state(data)
-            case PacketType.SWITCH_TEAM:
-                self.update_team(data["YELLOW"], data["POSITIVE"])
-            case PacketType.BLF_LOCATION:
-                self.update_ball_left_field_location(data)
+            case PacketType.NEW_COMMAND:
+                self.update_game_command(data)
             
             case _: # if the packet type is unknown 
                 log.exception(f"undefined Packet - {t}, {data=}")

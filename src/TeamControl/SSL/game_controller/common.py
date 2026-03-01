@@ -6,27 +6,57 @@ import numpy as np
 # these are Enums defined by us
 
 class PacketType(Enum): # for message sending onto gc_queue
-    ROBOTS_ACTIVE = auto()
-    NEW_STATE = auto()
-    SWITCH_TEAM = auto()
-    BLF_LOCATION = auto()
+    INITIALISE = auto()
+    SWITCH_COLOR = auto()
+    SWITCH_SIDES = auto()
+    
+    NEW_COMMAND = auto()
+    NEW_STAGE = auto()
+    NEW_EVENT = auto()
+    
+    FOUL_CHANGES = auto()
+    CARD_CHANGES = auto()
+    ROBOT_ACTIVE_CHANGE = auto()
+    GOALIE_CHANGE = auto()
+    TIMEOUT_CHANGE = auto()
+    
+    BOT_SUBSITUTION = auto()
+    BALL_PLACEMENT = auto()
 
+    RESET = auto()
+
+    
 class GameState(Enum):
+    '''
+    enum Type {
+        UNKNOWN = 0;
+        HALT = 1;
+        STOP = 2;
+        RUNNING = 3;
+        FREE_KICK = 4;
+        KICKOFF = 5;
+        PENALTY = 6;
+        TIMEOUT = 7;
+        BALL_PLACEMENT = 8;
+    }
+    '''
     HALTED = auto()
     STOPPED = auto()
     RUNNING = auto()
-    PREPARE_KICKOFF = auto()
 
     FREE_KICK = auto()
-    BALL_PLACEMENT = auto()
+    PREPARE_KICKOFF = auto()
     KICKOFF = auto()
     
+    TIMEOUT = auto()
     HALF_TIME = auto()
-    # TIME_OUT = auto()
+    BOT_SUBSITUTION = auto()
     
     PENALTY_SHOOT = auto()
     PENALTY_DEFEND = auto()
     
+    BALL_PLACEMENT = auto()
+
 
 """
 The following is obtained from gc_referee_message.proto
