@@ -332,12 +332,13 @@ EVENT_MAP = {
 }
 @dataclass
 class GameEvent:
-    event:str
-    type:Optional[GameEventType] = None
+    event:str # name of event
+    type:Optional[GameEventType] = None # enum type
     created_timestamp:Optional[int] = None
     id:Optional[str] = None
     origin:Optional[List[str]] = field(default_factory=list)
     event_data:Optional[BaseEvent] = None
+    # to access specific event related data use event_data
     
     @classmethod
     def from_proto(cls,game_event):
