@@ -47,6 +47,8 @@ class BaseWorker():
                 if self.error_cnt >= 4: 
                     self.error_cnt = 0
                     self.logger.error(f"[{self.__class__.__name__}]: too many errors ")
+                    print(f"[{self.__class__.__name__}]: shutting down, too many errors")
+
                     break
         
         self.shutdown()
@@ -54,7 +56,7 @@ class BaseWorker():
     # do shutdown here 
     def shutdown(self):
         self.logger.info(f"[{self.__class__.__name__}]: task complete, shutting down")
-        time.sleep(2)
+        time.sleep(1)
         self.logger.info(f"[{self.__class__.__name__}]: offline")
 
     @classmethod
