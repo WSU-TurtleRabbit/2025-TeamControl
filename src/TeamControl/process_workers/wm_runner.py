@@ -41,7 +41,7 @@ class WMWorker(BaseWorker):
         if not self.gc_q.empty():
             new_info = self.gc_q.get_nowait()
             self.logger.info(f"[wmr] : Updating World Model Game Info {new_info[0]}")
-            self.wm.update_game_data(new_info)
+            self.wm.update_gc_data(new_info)
         
         # use flush to rule out stdout buffering issues when printing from multiple processes
         # print(f"[wmr]: state from game controller: {self.wm.get_game_state()}", flush=True)

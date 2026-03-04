@@ -36,12 +36,12 @@ ACTIONS = [
     ]
 
 class MainTree(py_trees.composites.Sequence):
-    def __init__(self, wm, dispatch_q, state, logger=None):
+    def __init__(self, wm, dispatch_q, logger=None):
         name = "MainTree"
         super().__init__(name, memory=True)
         self.wm = wm
         self.dispatch_q = dispatch_q
-        self.state = state
+        # self.state = state
         if logger is not None:
             self.logger = logger
         
@@ -390,18 +390,23 @@ class GetState(py_trees.behaviour.Behaviour):
     # default is RUNNING for test operation, but should be changed for real use
     def update(self) -> py_trees.common.Status:
         self.bb.game_state = self.wm.get_game_state()
-     
+        old_state = self.bb.game_state
+        new_state = self.wm.get_game_state()
+        
+        if old_state == new_state:
+            print("[GetState] Game state unchanged:", new_state)
+            return py_trees.common.Status.SUCCESS
         # handle cases (stop, running, halted)
         if self.bb.game_state is None:
             print("NO STATE")
             return py_trees.common.Status.FAILURE
-        elif self.bb.game_state == GameState.STOPPED:
+        elif new_state == GameState.STOPPED:
             print("[GetState] Game state is STOPPED")
             return py_trees.common.Status.SUCCESS
-        elif self.bb.game_state == GameState.RUNNING:
+        elif new_state == GameState.RUNNING:
             print("[GetState] Game state is RUNNING")
             return py_trees.common.Status.SUCCESS
-        elif self.bb.game_state == GameState.HALTED:
+        elif new_state == GameState.HALTED:
             print("[GetState] Game state is HALTED")
             return py_trees.common.Status.SUCCESS
         else:

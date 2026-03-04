@@ -48,9 +48,7 @@ def run_bt_process(is_running:Event, wm:WorldModel, dispatcher_q:Queue)->None:
     '''
 
     # Initialise with default state -- RUNNING
-    state = "RUNNING"
-    print(f"[run_bt_process] Chosen state for testing: {state}")
-    root = MainTree(wm, dispatcher_q, state, logger)
+    root = MainTree(wm, dispatcher_q, logger)
     bt = py_trees.trees.BehaviourTree(root)
     bt.setup(timeout=15) # remember to add timeout
 

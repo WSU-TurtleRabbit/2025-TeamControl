@@ -167,7 +167,7 @@ class GCfsm (BaseWorker):
             self.shared_state = state
             
             print(f"[GCFSM] NEW STATE, {self.shared_state}")
-            packet = (PacketType.NEW_STATE, {self.shared_state})
+            packet = (PacketType.NEW_STATE, self.shared_state)
             self.output_q.put_nowait(packet)
         # self.shared_state.value = new_ref_msg.stage.value
         # self.current_command = new_ref_msg.command

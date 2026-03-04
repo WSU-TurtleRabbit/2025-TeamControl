@@ -35,7 +35,7 @@ class GetWorldPositionUpdate(py_trees.behaviour.Behaviour):
         self.isYellow = self.bb.isYellow   
 
         new_version = self.wm.get_version()
-        if self.version < new_version:
+        if self.version.value < new_version.value:
             self.version = new_version
             self.frame = self.wm.get_latest_frame()
             if self.frame is not None:
