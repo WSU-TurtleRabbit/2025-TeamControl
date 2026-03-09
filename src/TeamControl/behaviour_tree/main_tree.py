@@ -38,7 +38,7 @@ ACTIONS = [
 class MainTree(py_trees.composites.Sequence):
     def __init__(self, wm, dispatch_q, logger=None):
         name = "MainTree"
-        super().__init__(name, memory=True)
+        super().__init__(name, memory=False)
         self.wm = wm
         self.dispatch_q = dispatch_q
         # self.state = state
@@ -393,10 +393,10 @@ class GetState(py_trees.behaviour.Behaviour):
         old_state = self.bb.game_state
         new_state = self.wm.get_game_state()
         
-        if old_state == new_state:
-            print("[GetState] Game state unchanged:", new_state)
-            return py_trees.common.Status.SUCCESS
-        # handle cases (stop, running, halted)
+        # if old_state == new_state:
+        #     print("[GetState] Game state unchanged:", new_state)
+        #     return py_trees.common.Status.SUCCESS
+       
         if self.bb.game_state is None:
             print("NO STATE")
             return py_trees.common.Status.FAILURE

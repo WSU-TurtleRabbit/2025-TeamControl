@@ -50,8 +50,8 @@ def main():
     
     # robot_feedback_q = Queue()
 
-    # logger = LogSaver()
-    logger = None
+    logger = LogSaver()
+    # logger = None
         
     # event : System running ? 
     is_running = Event()
@@ -66,7 +66,7 @@ def main():
 
     # processes
     wmr = Process(target=WMWorker.run_worker, args=(is_running,logger,wm,vision_q,gc_q),)
-    vision_wkr = Process(target=VisionProcess.run_worker, args=(is_running,logger,vision_q,preset.use_grSim_vision,preset.vision[1]),)
+    # vision_wkr = Process(target=VisionProcess.run_worker, args=(is_running,logger,vision_q,preset.use_grSim_vision,preset.vision[1]),)
     gc_wkr = Process(target=GCfsm.run_worker, args=(is_running, logger, gc_q, preset.us_yellow, preset.us_positive, shared_state),)
     bt = Process(target=run_bt_process, args=(is_running,wm,dispatch_q,) )
     # striker = Process(target=run_simple_striker, args=(dispatch_q, wm, 0, preset.us_yellow))
@@ -81,7 +81,7 @@ def main():
     is_running.set()
     
     ## BACKGROUND PROCESSES ##
-    vision_wkr.start()
+    # vision_wkr.start()
     gc_wkr.start()
     wmr.start()
     dispatch_wkr.start()
@@ -115,7 +115,7 @@ def main():
         time.sleep(1)  # or 2 seconds if needed
 
     # Then wait for processes
-    vision_wkr.join(timeout=5)
+    #vision_wkr.join(timeout=5)
     gc_wkr.join(timeout=5)
     wmr.join(timeout=5)
     dispatch_wkr.join(timeout=5)
