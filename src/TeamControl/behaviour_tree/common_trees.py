@@ -48,7 +48,8 @@ class GetWorldPositionUpdate(py_trees.behaviour.Behaviour):
                     
             return py_trees.common.Status.SUCCESS
         # otherwise keep running
-        return py_trees.common.Status.RUNNING
+        # 10-03-2026 - this is only for testing purposes - change from RUNNING to SUCCESS
+        return py_trees.common.Status.SUCCESS
 
 # mock behaviour for testing main tree
 class GetBallPosition(py_trees.behaviour.Behaviour):
@@ -69,7 +70,7 @@ class GetBallPosition(py_trees.behaviour.Behaviour):
         ball_pos = self.bb.ball_pos
         if ball_pos is not None and self.condition == 1:
             # self.bb.ball_position = ball_pos
-            self.logger.info(f"[GetBallPosition] Ball position: {ball_pos}\tCONDITION PASS")
+            # self.logger.info(f"[GetBallPosition] Ball position: {ball_pos}\tCONDITION PASS")
             return py_trees.common.Status.SUCCESS
         else:
             # self.bb.ball_position = (0,0)

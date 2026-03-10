@@ -65,7 +65,7 @@ class MainTree(py_trees.composites.Sequence):
 class SelectRobotState(py_trees.composites.Selector):
     def __init__(self, wm, robot_id, dispatch_q):
         name = f"SelectRobotState (RobotID:{robot_id})"
-        super().__init__(name, memory=True)
+        super().__init__(name, memory=False)
         self.wm = wm
         self.robot_id = robot_id
         self.dispatch_q = dispatch_q
@@ -99,7 +99,7 @@ class StateTree(py_trees.composites.Sequence):
 class RunTree(py_trees.composites.Sequence):
     def __init__(self, wm, dispatch_q, robot_id):
         name = f"RunTree (RobotID:{robot_id})"
-        super().__init__(name, memory=True)
+        super().__init__(name, memory=False)
         self.wm = wm
         self.dispatch_q = dispatch_q
         self.robot_id = robot_id
@@ -150,7 +150,7 @@ class RunTree(py_trees.composites.Sequence):
 class HaltTree(py_trees.composites.Sequence):
     def __init__(self, wm, dispatch_q, robot_id):
         name = f"HaltTree (RobotID:{robot_id})"
-        super().__init__(name, memory=True)
+        super().__init__(name, memory=False)
         self.wm = wm
         self.dispatch_q = dispatch_q
         self.robot_id = robot_id
@@ -201,7 +201,7 @@ class HaltTree(py_trees.composites.Sequence):
 class StopTree(py_trees.composites.Sequence):
     def __init__(self, wm, dispatch_q, robot_id):
         name = f"StopTree (RobotID:{robot_id})"
-        super().__init__(name, memory=True)
+        super().__init__(name, memory=False)
         self.wm = wm
         self.dispatch_q = dispatch_q
         self.robot_id = robot_id
@@ -354,12 +354,11 @@ class GetState(py_trees.behaviour.Behaviour):
        
     def update(self) -> py_trees.common.Status:
         new_state = self.wm.get_game_state()
-        print("This is a test")
+        self.bb.game_state = self.wm.get_game_state()
 
         if self.state == new_state:
-            print(f"[GetState] Game state unchanged: {new_state}")
             return py_trees.common.Status.SUCCESS
-        if self.state is None:
+        if new_state is None:
             print("NO STATE")
             self.state = new_state
             return py_trees.common.Status.FAILURE
