@@ -27,6 +27,7 @@ class PathPlanner():
         self.timeout = 30
         self.p = VoronoiPlanner(xsize=field_x,ysize=field_y) #initialise planner
         self.output_q = dispatcher_q # output to behaviour tree or world model
+        self.goals = [(0, 0)]
 
     def check_wm_update(self):
         # checks if world model has is_yellow otherwise use default here
