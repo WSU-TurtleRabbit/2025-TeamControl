@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from enum import Enum,auto
 # PARAMETERSAG
-GOAL_WIDTH = 1300  # mm - Update this value based on actual goal width
-FIELD_WIDTH = 2760  # mm
-FIELD_LENGTH = 5040  # mm
-FRAME_RATE = 60  # Hz
-GOALIE_LINE = 1200  # mm
+GOAL_WIDTH = 1000   # mm - Division B goal width
+FIELD_WIDTH = 6000  # mm - Division B field width
+FIELD_LENGTH = 9000 # mm - Division B field length
+FRAME_RATE = 60     # Hz
+GOALIE_LINE = 4500  # mm - positive-x goal line (negate for negative-x side)
 
 class TrajectoryType(Enum):
     MOVE_AWAY_FROM_GOAL = auto() # "Moving away from the goal"
