@@ -1,10 +1,13 @@
 from TeamControl.network.robot_command import RobotCommand
 from TeamControl.robot.Movement import RobotMovement
+from TeamControl.robot.PenaltyKick import moveBackToGoalLine, patrolGoalLine
 
 from TeamControl.utils.goal_trajectory import predict_trajectory, goal_intersection
 from TeamControl.world.velocity_to_intercept import velocity_to_intercept
 from TeamControl.world.velocity_est import velocity_est
 from TeamControl.world.transform_cords import world2robot
+
+import time
 # from TeamControl.voronoi_planner.voronoi_planner import VoronoiPlanner
  
 # typings
@@ -85,6 +88,45 @@ class Goalie():
             # if all close to the ball ==> print (done, reached the target) ==> if ball - robot pos < 90
             if np.allclose(abs(goalie_pos[0] - ball_pos[0] + goalie_pos[1] - ball_pos[1]), 90):
                 print("Blocked ball")
+    
+    def penalty_kick(self):
+        # Step 1: Reposition to goal line 
+        while True: 
+            try: 
+                frame = self.wm.get_latest_frame()
+                robot = frame.get_yellow_robots(isYellow=self.is_yellow, robot_id=self.id)
+                self.ball_hist = self.update_ball_history(10)
+            except AttributeError:
+                continue
+
+            if len(self.ball_hist) < 10 or isinstance(robot, int):
+                continue 
+            goalie_pos = robot.position 
+            ball_pos = self.ball_hist[-1]
+            vx, vy, w = moveBackToGoalLine(goalie_pos, self.is_positive, ball_pos)
+            self.dispatch_q.put((RobotCommand(robot_id=self.id, vx=vx, vy=vy, w=w), 1))
+
+            if vx == 0 and vy == 0:  # arrived at goal line
+                break
+        
+        # Step 2: Patrol goal line for 10 seconds 
+        start_time = time.time()
+        while time.time() - start_time < 10: 
+            try:
+                frame = self.wm.get_latest_frame()
+                robot = frame.get_yellow_robots(isYellow=self.is_yellow, robot_id=self.id)
+                self.ball_hist = self.update_ball_history(10)
+            except AttributeError:
+                continue
+
+            if len(self.ball_hist) < 10 or isinstance(robot, int):
+                continue
+
+            goalie_pos = robot.position
+
+            vx, vy, w = patrolGoalLine(goalie_pos, self.ball_hist, self.is_positive)
+            self.dispatch_q.put((RobotCommand(robot_id=self.id, vx=vx, vy=vy, w=w), 1))
+        
              
         
     def update_ball_history(self,n = 10): # null = last ball pos
