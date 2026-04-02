@@ -127,9 +127,9 @@ class DispatcherGUI:
         # ── Velocity / control sliders ──────────────────────────
         self.sliders: dict[str, tk.DoubleVar] = {}
         slider_defs = [
-            ("vx",  "Velocity X (m/s)",      -5.0,  5.0, 0.0),
-            ("vy",  "Velocity Y (m/s)",      -5.0,  5.0, 0.0),
-            ("w",   "Angular vel ω (rad/s)", -10.0, 10.0, 0.0),
+            ("vx",  "Velocity X (m/s)",      -0.5,  0.5, 0.0),
+            ("vy",  "Velocity Y (m/s)",      -0.5,  0.5, 0.0),
+            ("w",   "Angular vel ω (rad/s)", -1.0,  1.0, 0.0),
         ]
         for key, label, lo, hi, default in slider_defs:
             self._add_slider(frame, key, label, lo, hi, default)
@@ -193,7 +193,7 @@ class DispatcherGUI:
                  fg=FG_COLOUR, width=22, anchor="w").pack(side="left")
 
         scale = tk.Scale(row, variable=var, from_=lo, to=hi, orient="horizontal",
-                         resolution=0.1, length=180, bg=BG_COLOUR, fg=FG_COLOUR,
+                         resolution=0.01, length=180, bg=BG_COLOUR, fg=FG_COLOUR,
                          troughcolor=ENTRY_BG, highlightthickness=0,
                          font=("Consolas", 8))
         scale.pack(side="left", expand=True, fill="x")
