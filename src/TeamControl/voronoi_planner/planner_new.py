@@ -21,7 +21,7 @@ from TeamControl.voronoi_planner.obstacle import Obstacle
 from TeamControl.voronoi_planner.graph import ClosedVoronoi
 
 # CLEARANCE is the width of the path taken by the robot
-CLEARANCE = 1300
+CLEARANCE = 300
 # additional radius to the obstacle
 BUFFER_ZONE = 80
 # THRESHOLD is for logical decision making (decision boundary)
@@ -60,7 +60,8 @@ class VoronoiPlanner:
         plt.xlabel("X")
         plt.ylabel("Y")
         plt.grid(True)
-        plt.show(block=False)
+        #plt.show(block=False)
+        plt.savefig("voronoi_plot.png")
 
         self.fig = fig
         self.ax = self.ax
@@ -392,7 +393,8 @@ if __name__ == "__main__":
         starts_np, clearance, list(range(1, len(starts_np) + 1)), isYellow=True
     )
 
-    opponent_np = generate_points(11, 2 * clearance, (0, 9000), (0, 6000), starts_np)
+    #opponent_np = generate_points(11, 2 * clearance, (0, 9000), (0, 6000), starts_np)
+    opponent_np = generate_points(11, clearance, (0, 9000), (0, 6000), starts_np)
     their_robots = Obstacle.from_numpy_array(
         opponent_np, clearance, list(range(100, 111)), isYellow=False
     )

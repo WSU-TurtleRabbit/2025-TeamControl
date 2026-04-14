@@ -139,14 +139,41 @@ class ClosedVoronoi:
         self.threshold = float(threshold)
         self.ring_k = int(ring_k)
 
+    # Testing fixed virtual nodes
+    # def _boundary_sites(self):
+    #     # corners + midpoints (enough to bound everything)
+    #     xm, xM, ym, yM = self.x_min, self.x_max, self.y_min, self.y_max
+    #     cx, cy = (xm + xM) / 2, (ym + yM) / 2
+    #     return np.array([
+    #         [xm, ym], [xm, yM], [xM, ym], [xM, yM],
+    #         [cx, ym], [cx, yM], [xm, cy], [xM, cy],
+    #     ], dtype=float)
+
+    # DIAMOND
+    # def _boundary_sites(self):
+    #     # corners + optional diamond to ensure all cells are closed
+    #     xm, xM, ym, yM = self.x_min, self.x_max, self.y_min, self.y_max
+    #     cx, cy = (xm + xM) / 2, (ym + yM) / 2
+    #     return np.array([
+    #         # corners
+    #         [xm, ym], [xm, yM], [xM, ym], [xM, yM],
+    #         # diamond around center
+    #         [cx, ym], [cx, yM], [xm, cy], [xM, cy],
+    #     ], dtype=float)
+
+    # GRID
     def _boundary_sites(self):
-        # corners + midpoints (enough to bound everything)
+        # Grid of fixed nodes to ensure all cells are closed
         xm, xM, ym, yM = self.x_min, self.x_max, self.y_min, self.y_max
-        cx, cy = (xm + xM) / 2, (ym + yM) / 2
-        return np.array([
-            [xm, ym], [xm, yM], [xM, ym], [xM, yM],
-            [cx, ym], [cx, yM], [xm, cy], [xM, cy],
-        ], dtype=float)
+        
+        # Decide number of points along each axis
+        nx, ny = 3, 3  # 3x3 grid, can increase to 4x4 or more for larger fields
+        
+        xs = np.linspace(xm, xM, nx)
+        ys = np.linspace(ym, yM, ny)
+        
+        grid_nodes = np.array([[x, y] for x in xs for y in ys], dtype=float)
+        return grid_nodes
 
     def _ring_sites(self, c, r):
         # helper ring around obstacle centre
@@ -177,9 +204,10 @@ class ClosedVoronoi:
             centre_sites.append(c)
             all_sites.append(c)
 
-            r = float(getattr(obs, "radius", 0.0)) + self.threshold
-            ring = self._ring_sites(c, r)
-            all_sites.extend(ring)
+            # Testing fixed virtual nodes
+            # r = float(getattr(obs, "radius", 0.0)) + self.threshold
+            # ring = self._ring_sites(c, r)
+            # all_sites.extend(ring)
 
         # add boundary sites
         boundary = self._boundary_sites()
