@@ -5,7 +5,7 @@ from TeamControl.robot.cmd_manager import CommandManager
 from TeamControl.network.robot_command import RobotCommand
 from TeamControl.world.transform_cords import world2robot
 from TeamControl.behaviour_tree.test_tree import GoToTarget
-from TeamControl.robot.velocity import Mode
+from TeamControl.robot.velocity import Mode, turn_to_target
 
 #dribble_threshold=0.07
 
@@ -38,7 +38,7 @@ class AttackSeq(py_trees.composites.Sequence):
     
         self.add_children([
             GetBallSelector(self.dispatcher_q),
-            NextActionSelector(self.dispatcher_q)
+            # NextActionSelector(self.dispatcher_q)
             
     
         ])
@@ -183,7 +183,62 @@ def send_robot_command(dispatcher_q, bb, runtime=2):
     else:
         print("[send_robot_command] Dispatcher queue is full")
         return False
-class NextActionSelector(py_trees.composites.Selector):
-    def __init__(self, dispatcher_q):
-        super().__init__(name="NextActionSelector", memory=True)
+# class NextActionSelector(py_trees.composites.Selector):
+#     def __init__(self, dispatcher_q):
+#         super().__init__(name="NextActionSelector", memory=True)
+#         self.bb = py_trees.blackboard.Client(name=self.name)
+
+class CanScore(py_trees.composites.Sequence):
+    def __init__(self):
+        super().__init__("CanScore")
         self.bb = py_trees.blackboard.Client(name=self.name)
+        self.bb.register_key(key="robot_pos", access=py_trees.common.Access.READ)
+        self.bb.register_key(key="target_pos", access=py_trees.common.Access.READ)
+        
+    def setup(self,**kwargs):
+        super().setup(**kwargs)
+        # outline all variables here
+        
+        
+        self.add_children([
+            AlignBallWithGoal(dispatcher_q=self.dispatcher_q),
+            Kick(kick_threshold=0.07, kick_angle=0.1)
+            
+        ])
+        
+    def initialise(self):
+        
+        for c in self.children:
+            c.setup()
+        
+class AlignBallWithGoal(py_trees.behaviour.Behaviour):
+    def __init__(self, mode: Mode):
+        name = "AlignBallWithGoal"
+        super().__init__(name)
+        self.mode = mode
+        self.bb = py_trees.blackboard.Client(name=name)
+        
+    def setup(self):
+        self.bb.register_key("robot_pos",access=py_trees.common.Access.READ) # in GetRobotIDPosition
+        self.bb.register_key("target_pos", access=py_trees.common.Access.READ)
+        self.bb.register_key("w",access=py_trees.common.Access.WRITE)
+        self.bb.register_key("d_theta",access=py_trees.common.Access.WRITE)
+        self.bb.register_key("dribble",access=py_trees.common.Access.WRITE)
+        
+    def update(self):
+        w=turn_to_target(robot_pos=self.bb.robot_pos,
+                         target_pos=self.bb.target_pos,
+                         mode=self.mode)
+        self.bb.w = w
+        
+        relative = world2robot(
+            robot_position=self.bb.robot_pos,
+            target_position=self.bb.target_pos
+        )
+        self.bb.d_theta = np.arctan2(relative[1], relative[0])
+        self.bb.dribble = 1
+        
+        
+        return py_trees.common.Status.SUCCESS
+
+
